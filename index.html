@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Odak Atolyesi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="Odak panosu">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">JavaScript projesi</p>
+            <h1>Odak Atolyesi</h1>
+          </div>
+          <div class="date-pill" id="todayLabel"></div>
+        </header>
+
+        <section class="timer-panel" aria-label="Odak zamanlayicisi">
+          <div class="timer-copy">
+            <p class="eyebrow">Simdiki oturum</p>
+            <h2 id="modeTitle">Odak zamani</h2>
+            <p id="modeDescription">Tek bir ise nazikce kilitlen.</p>
+          </div>
+
+          <div class="timer-ring" aria-live="polite">
+            <svg viewBox="0 0 120 120" role="img" aria-label="Zamanlayici ilerlemesi">
+              <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+              <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="time-readout" id="timeReadout">25:00</div>
+          </div>
+
+          <div class="timer-controls">
+            <button class="primary-button" id="startPauseButton" type="button">Baslat</button>
+            <button class="icon-button" id="resetButton" type="button" aria-label="Sifirla" title="Sifirla">
+              ↻
+            </button>
+            <div class="session-switch" role="group" aria-label="Oturum tipi">
+              <button class="switch-option active" data-mode="focus" type="button">Odak</button>
+              <button class="switch-option" data-mode="break" type="button">Mola</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="task-panel" aria-label="Gorevler">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Bugunun ritmi</p>
+              <h2>Gorevler</h2>
+            </div>
+            <span id="taskCount">0/0</span>
+          </div>
+
+          <form class="task-form" id="taskForm">
+            <label class="sr-only" for="taskInput">Yeni gorev</label>
+            <input id="taskInput" type="text" maxlength="80" placeholder="Bir sonraki kucuk adim..." />
+            <button type="submit">Ekle</button>
+          </form>
+
+          <ul class="task-list" id="taskList"></ul>
+        </section>
+      </section>
+
+      <aside class="insight-panel" aria-label="Ozet">
+        <section class="stat-block">
+          <p class="eyebrow">Tamamlanan odak</p>
+          <strong id="focusCount">0</strong>
+          <span>oturum</span>
+        </section>
+
+        <section class="quote-block">
+          <p id="quoteText"></p>
+        </section>
+
+        <section class="settings-block" aria-label="Sure ayarlari">
+          <h2>Sureler</h2>
+          <label>
+            <span>Odak</span>
+            <input id="focusMinutes" type="range" min="10" max="60" step="5" value="25" />
+            <b id="focusMinutesLabel">25 dk</b>
+          </label>
+          <label>
+            <span>Mola</span>
+            <input id="breakMinutes" type="range" min="5" max="30" step="5" value="5" />
+            <b id="breakMinutesLabel">5 dk</b>
+          </label>
+        </section>
+      </aside>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

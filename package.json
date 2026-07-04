@@ -1,0 +1,16 @@
+{
+  "name": "odak-atolyesi",
+  "version": "1.0.0",
+  "description": "Vanilla JavaScript ile odak ve gorev takip uygulamasi.",
+  "private": true,
+  "scripts": {
+    "check": "node --check script.js"
+  },
+  "keywords": [
+    "javascript",
+    "vanilla-js",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,433 @@
+:root {
+  color-scheme: light;
+  --ink: #16211f;
+  --muted: #64716d;
+  --paper: #fffaf1;
+  --surface: #ffffff;
+  --line: #dde5dd;
+  --mint: #5fc7a1;
+  --teal: #147d78;
+  --coral: #ee765f;
+  --sun: #f6c35b;
+  --shadow: 0 18px 50px rgba(22, 33, 31, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(95, 199, 161, 0.28), transparent 34rem),
+    linear-gradient(135deg, #fffaf1 0%, #eef8f3 52%, #fff3ee 100%);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  width: min(1180px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 32px 0;
+}
+
+.workspace {
+  display: grid;
+  grid-template-rows: auto minmax(360px, 1fr) auto;
+  gap: 20px;
+}
+
+.topbar,
+.timer-panel,
+.task-panel,
+.insight-panel,
+.stat-block,
+.quote-block,
+.settings-block {
+  border: 1px solid rgba(221, 229, 221, 0.86);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 100px;
+  padding: 22px 26px;
+  border-radius: 8px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--teal);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 4vw, 4.25rem);
+  line-height: 0.98;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: 1.35rem;
+}
+
+.date-pill {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--paper);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.timer-panel {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 320px) 1fr;
+  align-items: center;
+  gap: 24px;
+  min-height: 360px;
+  padding: 30px;
+  border-radius: 8px;
+}
+
+.timer-copy p:last-child {
+  max-width: 28ch;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.timer-ring {
+  position: relative;
+  aspect-ratio: 1;
+  width: min(100%, 320px);
+  margin: 0 auto;
+}
+
+.timer-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg,
+.ring-progress {
+  fill: none;
+  stroke-width: 9;
+}
+
+.ring-bg {
+  stroke: #e8eee8;
+}
+
+.ring-progress {
+  stroke: var(--coral);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 180ms ease;
+}
+
+.time-readout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  font-weight: 800;
+}
+
+.timer-controls {
+  display: grid;
+  justify-items: end;
+  gap: 14px;
+}
+
+.primary-button,
+.icon-button,
+.task-form button,
+.switch-option {
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.primary-button {
+  width: 160px;
+  color: white;
+  background: var(--teal);
+}
+
+.icon-button {
+  width: 44px;
+  color: var(--teal);
+  background: #eaf5ef;
+  font-size: 1.35rem;
+}
+
+.session-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 180px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.switch-option {
+  min-height: 38px;
+  color: var(--muted);
+  background: transparent;
+}
+
+.switch-option.active {
+  color: white;
+  background: var(--coral);
+}
+
+.task-panel {
+  padding: 22px;
+  border-radius: 8px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+#taskCount {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.task-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.task-form input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--ink);
+  background: var(--paper);
+  outline: none;
+}
+
+.task-form input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(20, 125, 120, 0.12);
+}
+
+.task-form button {
+  padding: 0 18px;
+  color: var(--ink);
+  background: var(--sun);
+}
+
+.task-list {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.task-item input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--teal);
+}
+
+.task-item span {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.task-item.done span {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.delete-task {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--coral);
+  background: #fff0ec;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.insight-panel {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.stat-block,
+.quote-block,
+.settings-block {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.stat-block {
+  padding: 22px;
+}
+
+.stat-block strong {
+  display: block;
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.stat-block span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.quote-block {
+  padding: 22px;
+  background: var(--teal);
+  color: white;
+}
+
+.quote-block p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.settings-block {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.settings-block label {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.settings-block input {
+  width: 100%;
+  accent-color: var(--coral);
+}
+
+.settings-block b {
+  color: var(--ink);
+  text-align: right;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .timer-panel {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .timer-copy p:last-child {
+    margin-inline: auto;
+  }
+
+  .timer-controls {
+    justify-items: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    width: min(100% - 20px, 1180px);
+    padding: 10px 0;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .timer-panel,
+  .task-panel {
+    padding: 18px;
+  }
+
+  .task-form {
+    grid-template-columns: 1fr;
+  }
+
+  .task-form button {
+    width: 100%;
+  }
+}
