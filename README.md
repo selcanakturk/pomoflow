@@ -1,10 +1,10 @@
-# Odak Atolyesi
+# PomoFlow
 
-Vanilla JavaScript ile hazirlanmis kucuk bir odak ve gorev takip uygulamasi.
+Vanilla JavaScript ile hazirlanmis kucuk bir Pomodoro ve gorev takip sitesi.
 
 ## Neler var?
 
-- Odak ve mola zamanlayicisi
+- Pomodoro ve mola zamanlayicisi
 - Ayarlanabilir sureler
 - Gorev ekleme, tamamlama ve silme
 - Tarayicida yerel kayit

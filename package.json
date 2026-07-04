@@ -1,7 +1,7 @@
 {
-  "name": "odak-atolyesi",
+  "name": "pomoflow",
   "version": "1.0.0",
-  "description": "Vanilla JavaScript ile odak ve gorev takip uygulamasi.",
+  "description": "Vanilla JavaScript ile Pomodoro ve gorev takip sitesi.",
   "private": true,
   "scripts": {
     "check": "node --check script.js"

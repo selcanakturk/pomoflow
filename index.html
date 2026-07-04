@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Odak Atolyesi</title>
+    <title>PomoFlow</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,20 +14,20 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="workspace" aria-label="Odak panosu">
+      <section class="workspace" aria-label="Pomodoro panosu">
         <header class="topbar">
           <div>
-            <p class="eyebrow">JavaScript projesi</p>
-            <h1>Odak Atolyesi</h1>
+            <p class="eyebrow">Pomodoro sitesi</p>
+            <h1>PomoFlow</h1>
           </div>
           <div class="date-pill" id="todayLabel"></div>
         </header>
 
-        <section class="timer-panel" aria-label="Odak zamanlayicisi">
+        <section class="timer-panel" aria-label="Pomodoro zamanlayicisi">
           <div class="timer-copy">
             <p class="eyebrow">Simdiki oturum</p>
-            <h2 id="modeTitle">Odak zamani</h2>
-            <p id="modeDescription">Tek bir ise nazikce kilitlen.</p>
+            <h2 id="modeTitle">Pomodoro zamani</h2>
+            <p id="modeDescription">Tek bir ise 25 dakikalik sakin bir akista kal.</p>
           </div>
 
           <div class="timer-ring" aria-live="polite">
@@ -44,7 +44,7 @@
               ↻
             </button>
             <div class="session-switch" role="group" aria-label="Oturum tipi">
-              <button class="switch-option active" data-mode="focus" type="button">Odak</button>
+              <button class="switch-option active" data-mode="focus" type="button">Pomo</button>
               <button class="switch-option" data-mode="break" type="button">Mola</button>
             </div>
           </div>
@@ -71,7 +71,7 @@
 
       <aside class="insight-panel" aria-label="Ozet">
         <section class="stat-block">
-          <p class="eyebrow">Tamamlanan odak</p>
+          <p class="eyebrow">Tamamlanan pomo</p>
           <strong id="focusCount">0</strong>
           <span>oturum</span>
         </section>
@@ -83,7 +83,7 @@
         <section class="settings-block" aria-label="Sure ayarlari">
           <h2>Sureler</h2>
           <label>
-            <span>Odak</span>
+            <span>Pomo</span>
             <input id="focusMinutes" type="range" min="10" max="60" step="5" value="25" />
             <b id="focusMinutesLabel">25 dk</b>
           </label>

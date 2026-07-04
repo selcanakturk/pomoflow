@@ -1,4 +1,4 @@
-const STORAGE_KEY = "odak-atolyesi-state";
+const STORAGE_KEY = "pomoflow-state";
 
 const quotes = [
   "Buyuk isler genelde kucuk ve gorunen bir sonraki adimla baslar.",
@@ -45,7 +45,7 @@ function loadState() {
     tasks: [
       {
         id: crypto.randomUUID(),
-        text: "Ilk gorevini ekle ve odak oturumunu baslat",
+        text: "Ilk gorevini ekle ve pomodoro oturumunu baslat",
         done: false,
       },
     ],
@@ -205,9 +205,9 @@ function render() {
     month: "long",
   }).format(new Date());
 
-  elements.modeTitle.textContent = isFocus ? "Odak zamani" : "Mola zamani";
+  elements.modeTitle.textContent = isFocus ? "Pomodoro zamani" : "Mola zamani";
   elements.modeDescription.textContent = isFocus
-    ? "Tek bir ise nazikce kilitlen."
+    ? "Tek bir ise 25 dakikalik sakin bir akista kal."
     : "Kalk, su ic, gozlerini dinlendir.";
 
   elements.switchOptions.forEach((button) => {
