@@ -1,13 +1,18 @@
 <!doctype html>
-<html lang="tr">
+<html lang="tr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="PomoFlow — Odaklan, molayı yönet, ilerlemeni takip et." />
+    <meta name="theme-color" content="#101417" />
     <title>PomoFlow</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./icons/icon-192.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
@@ -17,71 +22,87 @@
       <source src="./assets/background.mp4" type="video/mp4" />
     </video>
     <div class="background-tint" aria-hidden="true"></div>
+    <div class="ambient-glow ambient-glow--left" aria-hidden="true"></div>
+    <div class="ambient-glow ambient-glow--right" aria-hidden="true"></div>
 
     <main class="app-shell">
       <section class="workspace" aria-label="Pomodoro panosu">
         <header class="topbar">
-          <div>
-            <p class="eyebrow">Pomodoro sitesi</p>
+          <div class="topbar-brand">
+            <p class="eyebrow">Odak atölyesi</p>
             <h1>PomoFlow</h1>
           </div>
           <div class="topbar-meta">
+            <div class="streak-badge" id="streakBadge" title="Günlük seri">
+              <span class="streak-icon">🔥</span>
+              <span id="streakCount">0</span>
+            </div>
             <div class="date-pill" id="todayLabel"></div>
-            <button class="settings-button" type="button" aria-label="Ayarlar" title="Ayarlar">⚙</button>
+            <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="Tema değiştir" title="Tema">🌙</button>
+            <button class="icon-btn settings-button" id="settingsButton" type="button" aria-label="Ayarlar" title="Ayarlar">⚙</button>
           </div>
         </header>
 
-        <section class="timer-panel" aria-label="Pomodoro zamanlayicisi">
+        <section class="timer-panel" aria-label="Pomodoro zamanlayıcısı">
           <div class="session-switch" role="group" aria-label="Oturum tipi">
             <button class="switch-option active" data-mode="focus" type="button">🍅 Pomodoro</button>
-            <button class="switch-option" data-mode="shortBreak" type="button">☕ Kisa mola</button>
+            <button class="switch-option" data-mode="shortBreak" type="button">☕ Kısa mola</button>
             <button class="switch-option" data-mode="longBreak" type="button">🌙 Uzun mola</button>
           </div>
 
           <div class="timer-copy">
-            <p class="eyebrow">Simdiki oturum</p>
-            <h2 id="modeTitle">Pomodoro zamani</h2>
-            <p id="modeDescription">Tek bir ise 25 dakikalik sakin bir akista kal.</p>
+            <p class="eyebrow">Şimdiki oturum</p>
+            <h2 id="modeTitle">Pomodoro zamanı</h2>
+            <p id="modeDescription">Tek bir işe 25 dakikalık sakin bir akışta kal.</p>
           </div>
 
           <div class="timer-ring" aria-live="polite">
-            <svg viewBox="0 0 120 120" role="img" aria-label="Zamanlayici ilerlemesi">
+            <svg viewBox="0 0 120 120" role="img" aria-label="Zamanlayıcı ilerlemesi">
+              <defs>
+                <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ff6b61" />
+                  <stop offset="55%" stop-color="#ffd166" />
+                  <stop offset="100%" stop-color="#79d8b6" />
+                </linearGradient>
+                <linearGradient id="goalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#79d8b6" />
+                  <stop offset="100%" stop-color="#b8a7ff" />
+                </linearGradient>
+              </defs>
               <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+              <circle class="ring-goal" id="goalRing" cx="60" cy="60" r="46"></circle>
               <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="52"></circle>
             </svg>
             <div class="time-readout" id="timeReadout">25:00</div>
+            <div class="goal-label" id="goalLabel">0 / 4 pomo</div>
           </div>
 
           <div class="timer-controls">
-            <div class="duration-pills" aria-label="Hizli sureler">
+            <div class="duration-pills" aria-label="Hızlı süreler">
               <button type="button" data-minutes="5">5 dk</button>
               <button type="button" data-minutes="25">25 dk</button>
               <button type="button" data-minutes="60">60 dk</button>
             </div>
-            <button class="primary-button" id="startPauseButton" type="button">Baslat</button>
+            <button class="primary-button" id="startPauseButton" type="button">Başlat</button>
             <div class="quick-actions">
-              <button class="icon-button" id="resetButton" type="button" aria-label="Sifirla" title="Sifirla">
-                ↻
-              </button>
-              <button class="icon-button" id="skipButton" type="button" aria-label="Sonraki oturuma gec" title="Sonraki">
-                ›
-              </button>
+              <button class="icon-button" id="resetButton" type="button" aria-label="Sıfırla" title="Sıfırla">↻</button>
+              <button class="icon-button" id="skipButton" type="button" aria-label="Sonraki oturuma geç" title="Sonraki">›</button>
             </div>
           </div>
         </section>
 
-        <section class="task-panel" aria-label="Gorevler">
+        <section class="task-panel" aria-label="Görevler">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Bugunun ritmi</p>
-              <h2>Gorevler</h2>
+              <p class="eyebrow">Bugünün ritmi</p>
+              <h2>Görevler</h2>
             </div>
             <span id="taskCount">0/0</span>
           </div>
 
           <form class="task-form" id="taskForm">
-            <label class="sr-only" for="taskInput">Yeni gorev</label>
-            <input id="taskInput" type="text" maxlength="80" placeholder="Bir sonraki kucuk adim..." />
+            <label class="sr-only" for="taskInput">Yeni görev</label>
+            <input id="taskInput" type="text" maxlength="80" placeholder="Bir sonraki küçük adım..." />
             <button type="submit">Ekle</button>
           </form>
 
@@ -89,37 +110,194 @@
         </section>
       </section>
 
-      <aside class="insight-panel" aria-label="Ozet">
+      <aside class="insight-panel" aria-label="Özet">
+        <section class="stat-block stat-block--hero">
+          <div class="stat-row">
+            <div>
+              <p class="eyebrow">Bugün</p>
+              <strong id="todayPomos">0</strong>
+              <span>pomodoro</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div>
+              <p class="eyebrow">Bu hafta</p>
+              <strong id="weekPomos">0</strong>
+              <span>pomodoro</span>
+            </div>
+          </div>
+          <div class="goal-progress-bar" aria-label="Günlük hedef ilerlemesi">
+            <div class="goal-progress-fill" id="goalProgressFill"></div>
+          </div>
+          <p class="goal-progress-text" id="goalProgressText">Günlük hedef: 0 / 4</p>
+        </section>
+
         <section class="stat-block">
-          <p class="eyebrow">Tamamlanan pomo</p>
+          <p class="eyebrow">Toplam oturum</p>
           <strong id="focusCount">0</strong>
-          <span>oturum</span>
+          <span>tamamlanan pomo</span>
+        </section>
+
+        <section class="chart-block" aria-label="Haftalık istatistikler">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Son 7 gün</p>
+              <h2>İstatistikler</h2>
+            </div>
+          </div>
+          <div class="week-chart" id="weekChart" role="img" aria-label="Haftalık pomodoro grafiği"></div>
+          <p class="chart-summary" id="chartSummary"></p>
         </section>
 
         <section class="quote-block">
           <p id="quoteText"></p>
         </section>
 
-        <section class="music-block" aria-label="Spotify muzik">
+        <section class="music-block" aria-label="Spotify müzik">
           <div>
-            <p class="eyebrow">Calisma sesi</p>
+            <p class="eyebrow">Çalışma sesi</p>
             <h2>Spotify</h2>
           </div>
           <iframe
             id="spotifyPlayer"
-            title="Spotify oynatici"
+            title="Spotify oynatıcı"
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"
           ></iframe>
           <form class="spotify-form" id="spotifyForm">
             <label class="sr-only" for="spotifyUrl">Spotify linki</label>
-            <input id="spotifyUrl" type="url" placeholder="Spotify sarki, album ya da playlist linki" />
+            <input id="spotifyUrl" type="url" placeholder="Spotify şarkı, albüm ya da playlist linki" />
             <button type="submit">Koy</button>
           </form>
         </section>
       </aside>
     </main>
 
+    <!-- Ayarlar Modal -->
+    <div class="modal-overlay" id="settingsOverlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">Tercihler</p>
+            <h2 id="settingsTitle">Ayarlar</h2>
+          </div>
+          <button class="icon-btn modal-close" id="settingsClose" type="button" aria-label="Kapat">✕</button>
+        </header>
+
+        <div class="modal-tabs" role="tablist">
+          <button class="modal-tab active" data-tab="timer" type="button" role="tab">⏱ Zamanlayıcı</button>
+          <button class="modal-tab" data-tab="notifications" type="button" role="tab">🔔 Bildirimler</button>
+          <button class="modal-tab" data-tab="goals" type="button" role="tab">🎯 Hedefler</button>
+          <button class="modal-tab" data-tab="sync" type="button" role="tab">☁️ Senkron</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Zamanlayıcı -->
+          <div class="modal-panel active" data-panel="timer">
+            <div class="setting-row">
+              <label for="focusMinutes">Pomodoro süresi</label>
+              <div class="range-control">
+                <input id="focusMinutes" type="range" min="1" max="90" step="1" />
+                <span id="focusMinutesLabel">25 dk</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label for="shortBreakMinutes">Kısa mola</label>
+              <div class="range-control">
+                <input id="shortBreakMinutes" type="range" min="1" max="30" step="1" />
+                <span id="shortBreakMinutesLabel">5 dk</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label for="longBreakMinutes">Uzun mola</label>
+              <div class="range-control">
+                <input id="longBreakMinutes" type="range" min="1" max="60" step="1" />
+                <span id="longBreakMinutesLabel">15 dk</span>
+              </div>
+            </div>
+            <div class="setting-row setting-row--toggle">
+              <label for="autoStartBreaks">Molaları otomatik başlat</label>
+              <input id="autoStartBreaks" type="checkbox" class="toggle" />
+            </div>
+            <div class="setting-row setting-row--toggle">
+              <label for="autoStartFocus">Pomodoro'yu otomatik başlat</label>
+              <input id="autoStartFocus" type="checkbox" class="toggle" />
+            </div>
+          </div>
+
+          <!-- Bildirimler -->
+          <div class="modal-panel" data-panel="notifications">
+            <div class="setting-row setting-row--toggle">
+              <label for="notificationsEnabled">Tarayıcı bildirimleri</label>
+              <input id="notificationsEnabled" type="checkbox" class="toggle" />
+            </div>
+            <div class="setting-row setting-row--toggle">
+              <label for="soundEnabled">Sesli uyarı</label>
+              <input id="soundEnabled" type="checkbox" class="toggle" />
+            </div>
+            <div class="setting-row">
+              <label for="soundVolume">Ses seviyesi</label>
+              <div class="range-control">
+                <input id="soundVolume" type="range" min="0" max="100" step="5" />
+                <span id="soundVolumeLabel">70%</span>
+              </div>
+            </div>
+            <button class="secondary-button" id="testNotification" type="button">Bildirimi test et</button>
+            <button class="secondary-button" id="testSound" type="button">Sesi test et</button>
+          </div>
+
+          <!-- Hedefler -->
+          <div class="modal-panel" data-panel="goals">
+            <div class="setting-row">
+              <label for="dailyGoal">Günlük pomodoro hedefi</label>
+              <div class="range-control">
+                <input id="dailyGoal" type="range" min="1" max="16" step="1" />
+                <span id="dailyGoalLabel">4 pomo</span>
+              </div>
+            </div>
+            <div class="streak-info">
+              <div class="streak-stat">
+                <span class="streak-stat-value" id="settingsStreakCurrent">0</span>
+                <span class="streak-stat-label">Güncel seri</span>
+              </div>
+              <div class="streak-stat">
+                <span class="streak-stat-value" id="settingsStreakLongest">0</span>
+                <span class="streak-stat-label">En uzun seri</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Senkron -->
+          <div class="modal-panel" data-panel="sync">
+            <p class="sync-status" id="syncStatus">Yerel kayıt kullanılıyor</p>
+            <div class="setting-row">
+              <label for="syncEmail">E-posta (Supabase)</label>
+              <input id="syncEmail" type="email" placeholder="ornek@email.com" />
+            </div>
+            <div class="setting-row">
+              <label for="syncPassword">Şifre</label>
+              <input id="syncPassword" type="password" placeholder="••••••••" />
+            </div>
+            <div class="sync-actions">
+              <button class="primary-button" id="syncSignIn" type="button">Giriş yap</button>
+              <button class="secondary-button" id="syncSignUp" type="button">Kayıt ol</button>
+              <button class="secondary-button" id="syncSignOut" type="button" hidden>Çıkış yap</button>
+            </div>
+            <p class="sync-hint">Supabase yapılandırması için <code>config.js</code> dosyasını düzenle.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <script src="./config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./script.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      }
+    </script>
   </body>
 </html>
