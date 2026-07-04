@@ -13,6 +13,11 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <video id="backgroundVideo" class="background-video" autoplay muted loop playsinline aria-hidden="true">
+      <source src="./assets/background.mp4" type="video/mp4" />
+    </video>
+    <div class="background-tint" aria-hidden="true"></div>
+
     <main class="app-shell">
       <section class="workspace" aria-label="Pomodoro panosu">
         <header class="topbar">
@@ -20,10 +25,19 @@
             <p class="eyebrow">Pomodoro sitesi</p>
             <h1>PomoFlow</h1>
           </div>
-          <div class="date-pill" id="todayLabel"></div>
+          <div class="topbar-meta">
+            <div class="date-pill" id="todayLabel"></div>
+            <button class="settings-button" type="button" aria-label="Ayarlar" title="Ayarlar">⚙</button>
+          </div>
         </header>
 
         <section class="timer-panel" aria-label="Pomodoro zamanlayicisi">
+          <div class="session-switch" role="group" aria-label="Oturum tipi">
+            <button class="switch-option active" data-mode="focus" type="button">🍅 Pomodoro</button>
+            <button class="switch-option" data-mode="shortBreak" type="button">☕ Kisa mola</button>
+            <button class="switch-option" data-mode="longBreak" type="button">🌙 Uzun mola</button>
+          </div>
+
           <div class="timer-copy">
             <p class="eyebrow">Simdiki oturum</p>
             <h2 id="modeTitle">Pomodoro zamani</h2>
@@ -39,13 +53,19 @@
           </div>
 
           <div class="timer-controls">
+            <div class="duration-pills" aria-label="Hizli sureler">
+              <button type="button" data-minutes="5">5 dk</button>
+              <button type="button" data-minutes="25">25 dk</button>
+              <button type="button" data-minutes="60">60 dk</button>
+            </div>
             <button class="primary-button" id="startPauseButton" type="button">Baslat</button>
-            <button class="icon-button" id="resetButton" type="button" aria-label="Sifirla" title="Sifirla">
-              ↻
-            </button>
-            <div class="session-switch" role="group" aria-label="Oturum tipi">
-              <button class="switch-option active" data-mode="focus" type="button">Pomo</button>
-              <button class="switch-option" data-mode="break" type="button">Mola</button>
+            <div class="quick-actions">
+              <button class="icon-button" id="resetButton" type="button" aria-label="Sifirla" title="Sifirla">
+                ↻
+              </button>
+              <button class="icon-button" id="skipButton" type="button" aria-label="Sonraki oturuma gec" title="Sonraki">
+                ›
+              </button>
             </div>
           </div>
         </section>
@@ -80,18 +100,22 @@
           <p id="quoteText"></p>
         </section>
 
-        <section class="settings-block" aria-label="Sure ayarlari">
-          <h2>Sureler</h2>
-          <label>
-            <span>Pomo</span>
-            <input id="focusMinutes" type="range" min="10" max="60" step="5" value="25" />
-            <b id="focusMinutesLabel">25 dk</b>
-          </label>
-          <label>
-            <span>Mola</span>
-            <input id="breakMinutes" type="range" min="5" max="30" step="5" value="5" />
-            <b id="breakMinutesLabel">5 dk</b>
-          </label>
+        <section class="music-block" aria-label="Spotify muzik">
+          <div>
+            <p class="eyebrow">Calisma sesi</p>
+            <h2>Spotify</h2>
+          </div>
+          <iframe
+            id="spotifyPlayer"
+            title="Spotify oynatici"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          ></iframe>
+          <form class="spotify-form" id="spotifyForm">
+            <label class="sr-only" for="spotifyUrl">Spotify linki</label>
+            <input id="spotifyUrl" type="url" placeholder="Spotify sarki, album ya da playlist linki" />
+            <button type="submit">Koy</button>
+          </form>
         </section>
       </aside>
     </main>
