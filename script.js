@@ -1,11 +1,18 @@
 const STORAGE_KEY = "pomoflow-state-v2";
 const DEFAULT_SPOTIFY_URL =
   "https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS";
+const STATE_VERSION = 3;
+const DEFAULT_DURATIONS = { focus: 30, shortBreak: 5, longBreak: 20 };
+const QUICK_DURATIONS = {
+  focus: [30, 45, 60],
+  shortBreak: [5, 10, 15],
+  longBreak: [20, 25, 30],
+};
 
 const modeDetails = {
   focus: {
     title: "Pomodoro zamanı",
-    description: "Tek bir işe odaklan, 25 dakikalık sakin bir akışta kal.",
+    description: "Tek bir işe odaklan, 30 dakikalık sakin bir akışta kal.",
     next: "shortBreak",
     notifyTitle: "Pomodoro tamamlandı!",
     notifyBody: "Harika iş! Şimdi kısa bir mola zamanı.",
@@ -40,10 +47,11 @@ const quotes = [
 
 function defaultState() {
   return {
+    version: STATE_VERSION,
     mode: "focus",
     running: false,
     focusSessions: 0,
-    durations: { focus: 25, shortBreak: 5, longBreak: 15 },
+    durations: { ...DEFAULT_DURATIONS },
     spotifyUrl: DEFAULT_SPOTIFY_URL,
     tasks: [
       {
@@ -71,6 +79,7 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved) return fallback;
+    const isLegacyState = !saved.version || saved.version < STATE_VERSION;
 
     const durations = {
       ...fallback.durations,
@@ -81,9 +90,17 @@ function loadState() {
         fallback.durations.shortBreak,
     };
 
+    if (isLegacyState && durations.focus === 25) {
+      durations.focus = DEFAULT_DURATIONS.focus;
+    }
+    if (isLegacyState && durations.longBreak === 15) {
+      durations.longBreak = DEFAULT_DURATIONS.longBreak;
+    }
+
     return {
       ...fallback,
       ...saved,
+      version: STATE_VERSION,
       mode: modeDetails[saved.mode] ? saved.mode : "focus",
       durations,
       settings: { ...fallback.settings, ...saved.settings },
@@ -371,6 +388,15 @@ function updateDuration(mode, minutes) {
   }
   saveState();
   render();
+}
+
+function renderDurationPills() {
+  const options = QUICK_DURATIONS[state.mode] ?? QUICK_DURATIONS.focus;
+  elements.durationPills.forEach((button, index) => {
+    const minutes = options[index];
+    button.dataset.minutes = minutes;
+    button.textContent = `${minutes} dk`;
+  });
 }
 
 // ─── Spotify ─────────────────────────────────────────────────────────────────
@@ -770,6 +796,8 @@ function render() {
   elements.switchOptions.forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === state.mode);
   });
+
+  renderDurationPills();
 
   elements.quoteText.textContent =
     quotes[new Date().getDate() % quotes.length];

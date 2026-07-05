@@ -53,7 +53,7 @@
           <div class="timer-copy">
             <p class="eyebrow">Şimdiki oturum</p>
             <h2 id="modeTitle">Pomodoro zamanı</h2>
-            <p id="modeDescription">Tek bir işe 25 dakikalık sakin bir akışta kal.</p>
+            <p id="modeDescription">Tek bir işe 30 dakikalık sakin bir akışta kal.</p>
           </div>
 
           <div class="timer-ring" aria-live="polite">
@@ -73,14 +73,14 @@
               <circle class="ring-goal" id="goalRing" cx="60" cy="60" r="46"></circle>
               <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="52"></circle>
             </svg>
-            <div class="time-readout" id="timeReadout">25:00</div>
+            <div class="time-readout" id="timeReadout">30:00</div>
             <div class="goal-label" id="goalLabel">0 / 4 pomo</div>
           </div>
 
           <div class="timer-controls">
             <div class="duration-pills" aria-label="Hızlı süreler">
-              <button type="button" data-minutes="5">5 dk</button>
-              <button type="button" data-minutes="25">25 dk</button>
+              <button type="button" data-minutes="30">30 dk</button>
+              <button type="button" data-minutes="45">45 dk</button>
               <button type="button" data-minutes="60">60 dk</button>
             </div>
             <button class="primary-button" id="startPauseButton" type="button">Başlat</button>
@@ -166,7 +166,7 @@
           <form class="spotify-form" id="spotifyForm">
             <label class="sr-only" for="spotifyUrl">Spotify linki</label>
             <input id="spotifyUrl" type="url" placeholder="Spotify şarkı, albüm ya da playlist linki" />
-            <button type="submit">Koy</button>
+            <button type="submit">Ekle</button>
           </form>
         </section>
       </aside>
@@ -197,7 +197,7 @@
               <label for="focusMinutes">Pomodoro süresi</label>
               <div class="range-control">
                 <input id="focusMinutes" type="range" min="1" max="90" step="1" />
-                <span id="focusMinutesLabel">25 dk</span>
+                <span id="focusMinutesLabel">30 dk</span>
               </div>
             </div>
             <div class="setting-row">
@@ -211,7 +211,7 @@
               <label for="longBreakMinutes">Uzun mola</label>
               <div class="range-control">
                 <input id="longBreakMinutes" type="range" min="1" max="60" step="1" />
-                <span id="longBreakMinutesLabel">15 dk</span>
+                <span id="longBreakMinutesLabel">20 dk</span>
               </div>
             </div>
             <div class="setting-row setting-row--toggle">
