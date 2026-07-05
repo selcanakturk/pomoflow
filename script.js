@@ -155,6 +155,9 @@ let totalSeconds = remainingSeconds;
 let supabaseClient = null;
 let syncDebounce = null;
 let authMode = "login";
+let mobileView = "focus";
+let spotifyExpanded = false;
+let quoteExpanded = false;
 
 // ─── DOM ─────────────────────────────────────────────────────────────────────
 
@@ -167,6 +170,7 @@ const elements = {
   goalRing: document.querySelector("#goalRing"),
   timeReadout: document.querySelector("#timeReadout"),
   goalLabel: document.querySelector("#goalLabel"),
+  activeTaskLabel: document.querySelector("#activeTaskLabel"),
   startPauseButton: document.querySelector("#startPauseButton"),
   resetButton: document.querySelector("#resetButton"),
   skipButton: document.querySelector("#skipButton"),
@@ -184,6 +188,7 @@ const elements = {
   weekChart: document.querySelector("#weekChart"),
   chartSummary: document.querySelector("#chartSummary"),
   quoteText: document.querySelector("#quoteText"),
+  quoteToggle: document.querySelector("#quoteToggle"),
   homeProfileAvatar: document.querySelector("#homeProfileAvatar"),
   homeProfileName: document.querySelector("#homeProfileName"),
   homeProfileMeta: document.querySelector("#homeProfileMeta"),
@@ -191,6 +196,8 @@ const elements = {
   streakBadge: document.querySelector("#streakBadge"),
   streakCount: document.querySelector("#streakCount"),
   spotifyPlayer: document.querySelector("#spotifyPlayer"),
+  spotifyToggle: document.querySelector("#spotifyToggle"),
+  spotifyContent: document.querySelector("#spotifyContent"),
   spotifyForm: document.querySelector("#spotifyForm"),
   spotifyUrl: document.querySelector("#spotifyUrl"),
   themeToggle: document.querySelector("#themeToggle"),
@@ -247,6 +254,7 @@ const elements = {
   profileNamePreview: document.querySelector("#profileNamePreview"),
   profileMetaPreview: document.querySelector("#profileMetaPreview"),
   toastContainer: document.querySelector("#toastContainer"),
+  mobileNavItems: document.querySelectorAll(".mobile-nav-item"),
 };
 
 const circumference = 2 * Math.PI * 52;
@@ -388,6 +396,7 @@ function onSessionComplete() {
 
   showNotification(detail.notifyTitle, detail.notifyBody);
   playSound("complete");
+  navigator.vibrate?.([120, 80, 120]);
   showToast(detail.notifyTitle, detail.notifyBody);
 
   if (completedMode === "focus") {
@@ -459,6 +468,10 @@ function deleteTask(id) {
   state.tasks = state.tasks.filter((task) => task.id !== id);
   saveState();
   renderTasks();
+}
+
+function getActiveTask() {
+  return state.tasks.find((task) => !task.done) ?? null;
 }
 
 function updateDuration(mode, minutes) {
@@ -1019,6 +1032,8 @@ function renderTimer() {
   const progress = totalSeconds === 0 ? 0 : remainingSeconds / totalSeconds;
   elements.ringProgress.style.strokeDashoffset = `${circumference * (1 - progress)}`;
   elements.timeReadout.textContent = formatTime(remainingSeconds);
+  const activeTask = getActiveTask();
+  elements.activeTaskLabel.textContent = `Şu an: ${activeTask?.text ?? "Serbest odak"}`;
   elements.startPauseButton.textContent = state.running ? "Duraklat" : "Başlat";
   document.title = state.running
     ? `${formatTime(remainingSeconds)} — PomoFlow`
@@ -1054,6 +1069,8 @@ function renderTasks() {
 
   const doneCount = state.tasks.filter((t) => t.done).length;
   elements.taskCount.textContent = `${doneCount}/${state.tasks.length}`;
+  const activeTask = getActiveTask();
+  elements.activeTaskLabel.textContent = `Şu an: ${activeTask?.text ?? "Serbest odak"}`;
 }
 
 function renderStats() {
@@ -1061,6 +1078,7 @@ function renderStats() {
   const weekTotal = getWeekTotal();
   const goal = state.settings.dailyGoal;
   const goalProgress = Math.min(today.pomodoros / goal, 1);
+  const goalPercent = Math.round(goalProgress * 100);
 
   elements.todayPomos.textContent = today.pomodoros;
   elements.weekPomos.textContent = weekTotal;
@@ -1071,12 +1089,12 @@ function renderStats() {
     state.streak.current > 0,
   );
 
-  elements.goalLabel.textContent = `${today.pomodoros} / ${goal} pomo`;
+  elements.goalLabel.textContent = `${today.pomodoros} / ${goal} pomo · %${goalPercent}`;
   elements.goalProgressFill.style.width = `${goalProgress * 100}%`;
   elements.goalProgressText.textContent =
     goalProgress >= 1
-      ? `🎉 Günlük hedef tamamlandı! (${today.pomodoros}/${goal})`
-      : `Günlük hedef: ${today.pomodoros} / ${goal}`;
+      ? `🎉 Günlük hedef tamamlandı! ${today.pomodoros} / ${goal} pomo · %${goalPercent}`
+      : `Günlük hedef: ${today.pomodoros} / ${goal} pomo · %${goalPercent}`;
 
   elements.goalRing.style.strokeDashoffset = `${goalCircumference * (1 - goalProgress)}`;
 
@@ -1160,13 +1178,13 @@ function renderProfile() {
   const isSignedIn = Boolean(state.sync.activeEmail);
   const name = getProfileDisplayName() || state.sync.activeEmail || "PomoFlow kullanıcısı";
   const topbarName = getProfileShortName();
-  const meta = state.profile.role || "Senkronize hesap";
+  const meta = state.profile.role || state.sync.activeEmail || "Senkronize hesap";
   elements.profileAvatarPreview.textContent = state.profile.avatar;
   elements.profileNamePreview.textContent = name;
   elements.profileMetaPreview.textContent = meta;
   elements.homeProfileAvatar.textContent = isSignedIn ? state.profile.avatar : "👤";
-  elements.homeProfileName.textContent = isSignedIn ? topbarName : "Giriş yap";
-  elements.homeProfileMeta.textContent = isSignedIn ? meta : "Hesabını senkronize et";
+  elements.homeProfileName.textContent = isSignedIn ? topbarName : "Misafir";
+  elements.homeProfileMeta.textContent = isSignedIn ? meta : "Giriş yap";
   elements.topbarProfileButton.setAttribute("aria-label", isSignedIn ? "Hesabı aç" : "Giriş yap");
 }
 
@@ -1174,6 +1192,23 @@ function renderSyncMeta() {
   elements.syncMeta.textContent = `Son senkron: ${formatSyncTime(
     state.sync.lastPushedAt || state.sync.lastPulledAt,
   )}`;
+}
+
+function renderMobileView() {
+  document.body.dataset.mobileView = mobileView;
+  document.body.classList.toggle("spotify-expanded", spotifyExpanded);
+  document.body.classList.toggle("quote-expanded", quoteExpanded);
+
+  elements.mobileNavItems.forEach((item) => {
+    const active = item.dataset.mobileView === mobileView;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-current", active ? "page" : "false");
+  });
+
+  elements.spotifyToggle.textContent = spotifyExpanded ? "Spotify'ı kapat" : "Spotify'ı aç";
+  elements.spotifyToggle.setAttribute("aria-expanded", String(spotifyExpanded));
+  elements.quoteToggle.textContent = quoteExpanded ? "Kapat" : "Aç";
+  elements.quoteToggle.setAttribute("aria-expanded", String(quoteExpanded));
 }
 
 function render() {
@@ -1206,6 +1241,7 @@ function render() {
   renderTasks();
   renderStats();
   renderSettings();
+  renderMobileView();
 }
 
 // ─── Event Listeners ─────────────────────────────────────────────────────────
@@ -1243,6 +1279,25 @@ elements.settingsButton.addEventListener("click", openSettings);
 elements.topbarProfileButton.addEventListener("click", openAuth);
 elements.settingsClose.addEventListener("click", closeSettings);
 elements.authClose.addEventListener("click", closeAuth);
+elements.mobileNavItems.forEach((item) => {
+  item.addEventListener("click", () => {
+    const view = item.dataset.mobileView;
+    if (view === "account") {
+      openAuth();
+      return;
+    }
+    mobileView = view;
+    renderMobileView();
+  });
+});
+elements.spotifyToggle.addEventListener("click", () => {
+  spotifyExpanded = !spotifyExpanded;
+  renderMobileView();
+});
+elements.quoteToggle.addEventListener("click", () => {
+  quoteExpanded = !quoteExpanded;
+  renderMobileView();
+});
 elements.showRegister.addEventListener("click", () => setAuthMode("register"));
 elements.showLogin.addEventListener("click", () => setAuthMode("login"));
 elements.settingsOverlay.addEventListener("click", (e) => {

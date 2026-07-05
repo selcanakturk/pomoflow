@@ -83,6 +83,7 @@
             <div class="time-readout" id="timeReadout">30:00</div>
             <div class="goal-label" id="goalLabel">0 / 4 pomo</div>
           </div>
+          <p class="active-task-label" id="activeTaskLabel">Şu an: Serbest odak</p>
 
           <div class="timer-controls">
             <div class="duration-pills" aria-label="Hızlı süreler">
@@ -95,6 +96,29 @@
               <button class="icon-button" id="resetButton" type="button" aria-label="Sıfırla" title="Sıfırla">↻</button>
               <button class="icon-button" id="skipButton" type="button" aria-label="Sonraki oturuma geç" title="Sonraki">›</button>
             </div>
+          </div>
+        </section>
+
+        <section class="music-block" aria-label="Spotify müzik">
+          <div class="music-heading">
+            <div>
+              <p class="eyebrow">Çalışma sesi</p>
+              <h2>Spotify</h2>
+            </div>
+            <button class="mobile-toggle-button" id="spotifyToggle" type="button" aria-expanded="false">Spotify'ı aç</button>
+          </div>
+          <div class="music-content" id="spotifyContent">
+            <iframe
+              id="spotifyPlayer"
+              title="Spotify oynatıcı"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"
+            ></iframe>
+            <form class="spotify-form" id="spotifyForm">
+              <label class="sr-only" for="spotifyUrl">Spotify linki</label>
+              <input id="spotifyUrl" type="url" placeholder="Spotify şarkı, albüm ya da playlist linki" />
+              <button type="submit">Ekle</button>
+            </form>
           </div>
         </section>
 
@@ -156,28 +180,53 @@
         </section>
 
         <section class="quote-block">
+          <div class="mobile-section-heading">
+            <p class="eyebrow">Bugünün sözü</p>
+            <button class="mobile-toggle-button" id="quoteToggle" type="button" aria-expanded="false">Aç</button>
+          </div>
           <p id="quoteText"></p>
         </section>
 
-        <section class="music-block" aria-label="Spotify müzik">
-          <div>
-            <p class="eyebrow">Çalışma sesi</p>
-            <h2>Spotify</h2>
-          </div>
-          <iframe
-            id="spotifyPlayer"
-            title="Spotify oynatıcı"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-          ></iframe>
-          <form class="spotify-form" id="spotifyForm">
-            <label class="sr-only" for="spotifyUrl">Spotify linki</label>
-            <input id="spotifyUrl" type="url" placeholder="Spotify şarkı, albüm ya da playlist linki" />
-            <button type="submit">Ekle</button>
-          </form>
-        </section>
       </aside>
     </main>
+
+    <nav class="mobile-bottom-nav" aria-label="Mobil gezinme">
+      <button class="mobile-nav-item active" type="button" data-mobile-view="focus">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="13" r="7"></circle>
+          <path d="M12 13V9"></path>
+          <path d="M10 3h4"></path>
+          <path d="M12 3v3"></path>
+        </svg>
+        <strong>Odak</strong>
+      </button>
+      <button class="mobile-nav-item" type="button" data-mobile-view="tasks">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 7h10"></path>
+          <path d="M8 12h10"></path>
+          <path d="M8 17h7"></path>
+          <path d="m3.5 12 1.5 1.5L7.5 11"></path>
+        </svg>
+        <strong>Görevler</strong>
+      </button>
+      <button class="mobile-nav-item" type="button" data-mobile-view="stats">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 19V5"></path>
+          <path d="M4 19h16"></path>
+          <path d="M8 16v-5"></path>
+          <path d="M12 16V8"></path>
+          <path d="M16 16v-3"></path>
+        </svg>
+        <strong>İstatistik</strong>
+      </button>
+      <button class="mobile-nav-item" type="button" data-mobile-view="account">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M5 20a7 7 0 0 1 14 0"></path>
+        </svg>
+        <strong>Hesap</strong>
+      </button>
+    </nav>
 
     <!-- Ayarlar Modal -->
     <div class="modal-overlay" id="settingsOverlay" hidden>
