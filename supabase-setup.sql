@@ -23,6 +23,19 @@ CREATE TABLE IF NOT EXISTS pomoflow_profiles (
 ALTER TABLE pomoflow_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pomoflow_profiles ENABLE ROW LEVEL SECURITY;
 
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE pomoflow_data TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE pomoflow_profiles TO authenticated;
+
+DROP POLICY IF EXISTS "Users can read own data" ON pomoflow_data;
+DROP POLICY IF EXISTS "Users can insert own data" ON pomoflow_data;
+DROP POLICY IF EXISTS "Users can update own data" ON pomoflow_data;
+DROP POLICY IF EXISTS "Users can delete own data" ON pomoflow_data;
+DROP POLICY IF EXISTS "Users can read own profile" ON pomoflow_profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON pomoflow_profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON pomoflow_profiles;
+DROP POLICY IF EXISTS "Users can delete own profile" ON pomoflow_profiles;
+
 CREATE POLICY "Users can read own data"
   ON pomoflow_data FOR SELECT
   USING (auth.uid() = user_id);
@@ -33,6 +46,11 @@ CREATE POLICY "Users can insert own data"
 
 CREATE POLICY "Users can update own data"
   ON pomoflow_data FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own data"
+  ON pomoflow_data FOR DELETE
   USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can read own profile"
@@ -45,4 +63,9 @@ CREATE POLICY "Users can insert own profile"
 
 CREATE POLICY "Users can update own profile"
   ON pomoflow_profiles FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own profile"
+  ON pomoflow_profiles FOR DELETE
   USING (auth.uid() = user_id);

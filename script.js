@@ -45,10 +45,23 @@ const quotes = [
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
-function defaultState() {
+function getGuestStorageKey(date = todayKey()) {
+  return `${STORAGE_KEY}-guest-${date}`;
+}
+
+function getUserStorageKey(userId) {
+  return `${STORAGE_KEY}-user-${userId}`;
+}
+
+function defaultState(owner = {}) {
   return {
     version: STATE_VERSION,
     clientId: crypto.randomUUID(),
+    owner: {
+      type: owner.type ?? "guest",
+      userId: owner.userId ?? null,
+      email: owner.email ?? "",
+    },
     mode: "focus",
     running: false,
     focusSessions: 0,
@@ -86,15 +99,15 @@ function defaultState() {
       lastPulledAt: null,
       lastPushedAt: null,
       remoteUpdatedAt: null,
-      activeEmail: "",
+      activeEmail: owner.email ?? "",
     },
   };
 }
 
-function loadState() {
-  const fallback = defaultState();
+function loadState(storageKey = getGuestStorageKey(), owner = {}) {
+  const fallback = defaultState(owner);
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const saved = JSON.parse(localStorage.getItem(storageKey));
     if (!saved) return fallback;
     const isLegacyState = !saved.version || saved.version < STATE_VERSION;
 
@@ -117,6 +130,7 @@ function loadState() {
     return {
       ...fallback,
       ...saved,
+      owner: { ...fallback.owner, ...saved.owner },
       version: STATE_VERSION,
       mode: modeDetails[saved.mode] ? saved.mode : "focus",
       durations,
@@ -133,12 +147,14 @@ function loadState() {
   }
 }
 
-const state = loadState();
+let currentStorageKey = getGuestStorageKey();
+let state = loadState(currentStorageKey, { type: "guest" });
 let timerId = null;
 let remainingSeconds = state.durations[state.mode] * 60;
 let totalSeconds = remainingSeconds;
 let supabaseClient = null;
 let syncDebounce = null;
+let authMode = "login";
 
 // ─── DOM ─────────────────────────────────────────────────────────────────────
 
@@ -184,7 +200,12 @@ const elements = {
   authOverlay: document.querySelector("#authOverlay"),
   authClose: document.querySelector("#authClose"),
   authTitle: document.querySelector("#authTitle"),
+  authLoginPanel: document.querySelector("#authLoginPanel"),
+  authRegisterPanel: document.querySelector("#authRegisterPanel"),
+  authAccountPanel: document.querySelector("#authAccountPanel"),
   authProfilePreview: document.querySelector("#authProfilePreview"),
+  showRegister: document.querySelector("#showRegister"),
+  showLogin: document.querySelector("#showLogin"),
   modalTabs: document.querySelectorAll(".modal-tab"),
   modalPanels: document.querySelectorAll(".modal-panel"),
   focusMinutes: document.querySelector("#focusMinutes"),
@@ -209,12 +230,17 @@ const elements = {
   syncMeta: document.querySelector("#syncMeta"),
   syncEmail: document.querySelector("#syncEmail"),
   syncPassword: document.querySelector("#syncPassword"),
+  registerEmail: document.querySelector("#registerEmail"),
+  registerPassword: document.querySelector("#registerPassword"),
   syncSignIn: document.querySelector("#syncSignIn"),
   syncSignUp: document.querySelector("#syncSignUp"),
   syncNow: document.querySelector("#syncNow"),
   syncSignOut: document.querySelector("#syncSignOut"),
+  saveProfile: document.querySelector("#saveProfile"),
   profileFirstName: document.querySelector("#profileFirstName"),
   profileLastName: document.querySelector("#profileLastName"),
+  accountFirstName: document.querySelector("#accountFirstName"),
+  accountLastName: document.querySelector("#accountLastName"),
   profileRole: document.querySelector("#profileRole"),
   profileAvatar: document.querySelector("#profileAvatar"),
   profileAvatarPreview: document.querySelector("#profileAvatarPreview"),
@@ -239,10 +265,25 @@ function saveState(options = {}) {
     state.sync.localUpdatedAt = new Date().toISOString();
   }
   localStorage.setItem(
-    STORAGE_KEY,
+    currentStorageKey,
     JSON.stringify({ ...state, running: false }),
   );
   if (options.sync !== false) scheduleSync();
+}
+
+function setActiveState(nextState, storageKey, options = {}) {
+  stopTimer();
+  currentStorageKey = storageKey;
+  state = nextState;
+  remainingSeconds = state.durations[state.mode] * 60;
+  totalSeconds = remainingSeconds;
+  saveState({ markDirty: false, sync: false });
+  if (options.render !== false) render();
+}
+
+function resetToGuestState() {
+  const guestKey = getGuestStorageKey();
+  setActiveState(defaultState({ type: "guest" }), guestKey);
 }
 
 function formatTime(seconds) {
@@ -584,10 +625,29 @@ function closeSettings() {
   document.body.classList.remove("modal-open");
 }
 
+function setAuthMode(mode) {
+  const isSignedIn = Boolean(state.sync.activeEmail);
+  authMode = isSignedIn ? "account" : mode;
+  elements.authLoginPanel.hidden = authMode !== "login";
+  elements.authRegisterPanel.hidden = authMode !== "register";
+  elements.authAccountPanel.hidden = authMode !== "account";
+  elements.authTitle.textContent = {
+    login: "Giriş yap",
+    register: "Kayıt ol",
+    account: "Hesabım",
+  }[authMode];
+}
+
 function openAuth() {
+  setAuthMode(state.sync.activeEmail ? "account" : authMode);
   elements.authOverlay.hidden = false;
   document.body.classList.add("modal-open");
-  elements.syncEmail.focus();
+  const focusTarget = {
+    login: elements.syncEmail,
+    register: elements.profileFirstName,
+    account: elements.accountFirstName,
+  }[authMode];
+  focusTarget?.focus();
 }
 
 function closeAuth() {
@@ -625,6 +685,9 @@ async function pushToCloud() {
     data: { session },
   } = await supabaseClient.auth.getSession();
   if (!session) return;
+  if (state.owner.type !== "user" || state.owner.userId !== session.user.id) {
+    return;
+  }
 
   const payload = {
     user_id: session.user.id,
@@ -676,12 +739,49 @@ async function upsertProfile(user) {
   );
 }
 
-async function pullFromCloud() {
+function applyUserMetadataProfile(user) {
+  const metadata = user?.user_metadata ?? {};
+  const fullName = metadata.display_name || metadata.full_name || metadata.name || "";
+  const [firstName = "", ...lastNameParts] = fullName.split(" ").filter(Boolean);
+  if (!state.profile.firstName) {
+    state.profile.firstName = metadata.first_name || firstName || "";
+  }
+  if (!state.profile.lastName) {
+    state.profile.lastName = metadata.last_name || lastNameParts.join(" ") || "";
+  }
+  if (!state.profile.displayName) {
+    state.profile.displayName =
+      [state.profile.firstName, state.profile.lastName].filter(Boolean).join(" ").trim() ||
+      fullName;
+  }
+  if (!state.profile.avatar && metadata.avatar) {
+    state.profile.avatar = metadata.avatar;
+  }
+}
+
+async function pullFromCloud(options = {}) {
   if (!supabaseClient) return;
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  let session = options.session;
+  if (!session) {
+    const {
+      data: { session: activeSession },
+    } = await supabaseClient.auth.getSession();
+    session = activeSession;
+  }
   if (!session) return;
+
+  const userOwner = {
+    type: "user",
+    userId: session.user.id,
+    email: session.user.email,
+  };
+  const userStorageKey = getUserStorageKey(session.user.id);
+  const savedUserState = localStorage.getItem(userStorageKey);
+  const hasSavedUserState = Boolean(savedUserState);
+  setActiveState(loadState(userStorageKey, userOwner), userStorageKey, {
+    render: false,
+  });
+  applyUserMetadataProfile(session.user);
 
   const { data, error } = await supabaseClient
     .from("pomoflow_data")
@@ -689,18 +789,70 @@ async function pullFromCloud() {
     .eq("user_id", session.user.id)
     .maybeSingle();
 
-  if (error || !data?.data) return;
-  const localTime = new Date(state.sync.localUpdatedAt ?? 0).getTime();
-  const remoteTime = new Date(data.updated_at ?? 0).getTime();
-  const remoteIsNewer = remoteTime >= localTime;
-  if (!remoteIsNewer) {
+  if (error) {
+    showToast("Senkron hatası", error.message);
+    state.sync.activeEmail = session.user.email;
+    saveState({ markDirty: false, sync: false });
+    render();
+    return;
+  }
+
+  if (!data?.data && hasSavedUserState) {
+    state.owner = userOwner;
+    state.sync.activeEmail = session.user.email;
+    state.sync.lastPulledAt = new Date().toISOString();
+    saveState({ markDirty: false, sync: false });
     await pushToCloud();
+    render();
+    return;
+  }
+
+  if (!data?.data && options.cleanWhenRemoteMissing) {
+    const cleanState = defaultState(userOwner);
+    setActiveState(cleanState, userStorageKey, {
+      render: false,
+    });
+    applyUserMetadataProfile(session.user);
+    state.sync.activeEmail = session.user.email;
+    state.sync.lastPulledAt = new Date().toISOString();
+    saveState({ markDirty: false, sync: false });
+    render();
+    return;
+  }
+
+  if (!data?.data) {
+    const cleanState = defaultState(userOwner);
+    setActiveState(cleanState, userStorageKey, {
+      render: false,
+    });
+    state.sync.activeEmail = session.user.email;
+    state.sync.lastPulledAt = new Date().toISOString();
+    saveState({ markDirty: false, sync: false });
+    render();
+    return;
+  }
+
+  const localUpdatedAt = new Date(state.sync.localUpdatedAt ?? 0).getTime();
+  const remoteUpdatedAt = new Date(data.updated_at ?? 0).getTime();
+  if (hasSavedUserState && localUpdatedAt > remoteUpdatedAt) {
+    state.owner = userOwner;
+    state.sync.activeEmail = session.user.email;
+    state.sync.remoteUpdatedAt = data.updated_at;
+    state.sync.lastPulledAt = new Date().toISOString();
+    saveState({ markDirty: false, sync: false });
+    await pushToCloud();
+    render();
     return;
   }
 
   const cloud = data.data;
+  const userState = defaultState(userOwner);
+  setActiveState(userState, userStorageKey, {
+    render: false,
+  });
   state.version = cloud.version ?? state.version;
   state.profile = { ...state.profile, ...cloud.profile };
+  applyUserMetadataProfile(session.user);
   state.focusSessions = cloud.focusSessions ?? state.focusSessions;
   state.durations = { ...state.durations, ...cloud.durations };
   state.tasks = cloud.tasks ?? state.tasks;
@@ -708,6 +860,12 @@ async function pullFromCloud() {
   state.stats = cloud.stats ?? state.stats;
   state.streak = { ...state.streak, ...cloud.streak };
   state.spotifyUrl = cloud.spotifyUrl ?? state.spotifyUrl;
+  state.owner = {
+    type: "user",
+    userId: session.user.id,
+    email: session.user.email,
+  };
+  state.sync.activeEmail = session.user.email;
   state.sync.remoteUpdatedAt = data.updated_at;
   state.sync.lastPulledAt = new Date().toISOString();
 
@@ -721,23 +879,19 @@ async function pullFromCloud() {
 function updateSyncUI(session) {
   state.sync.activeEmail = session?.user?.email ?? "";
   if (session) {
+    applyUserMetadataProfile(session.user);
     const name = getProfileDisplayName() || session.user.email;
     elements.syncStatus.textContent = `Senkronize: ${name}`;
-    elements.syncSignOut.hidden = false;
-    elements.syncSignIn.hidden = true;
-    elements.syncSignUp.hidden = true;
     elements.syncNow.hidden = false;
+    elements.syncSignOut.hidden = false;
   } else {
     elements.syncStatus.textContent = supabaseClient
       ? "Giriş yaparak verilerini senkronize et"
       : "Yerel kayıt kullanılıyor (config.js yapılandır)";
-    elements.syncSignOut.hidden = true;
-    elements.syncSignIn.hidden = false;
-    elements.syncSignUp.hidden = false;
     elements.syncNow.hidden = true;
+    elements.syncSignOut.hidden = true;
   }
-  elements.authTitle.textContent = session ? "Hesabım" : "Giriş yap";
-  elements.authProfilePreview.hidden = !session;
+  setAuthMode(session ? "account" : authMode === "register" ? "register" : "login");
   renderSyncMeta();
   renderProfile();
 }
@@ -747,21 +901,28 @@ async function signIn() {
     showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
     return;
   }
-  const { error } = await supabaseClient.auth.signInWithPassword({
-    email: elements.syncEmail.value.trim(),
-    password: elements.syncPassword.value,
-  });
-  if (error) {
-    showToast("Giriş başarısız", error.message);
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: elements.syncEmail.value.trim(),
+      password: elements.syncPassword.value,
+    });
+    if (error) {
+      showToast("Giriş başarısız", error.message);
+      return;
+    }
+    const session = data.session;
+    if (!session) {
+      showToast("Giriş beklemede", "Oturum oluşmadı. E-posta doğrulaması gerekebilir.");
+      return;
+    }
+    await pullFromCloud({ session, cleanWhenRemoteMissing: true });
+    updateSyncUI(session);
+    closeAuth();
+    showToast("Giriş başarılı", "Verilerin senkronize edildi.");
+  } catch (error) {
+    showToast("Giriş başarısız", error.message ?? "Beklenmeyen bir hata oluştu.");
     return;
   }
-  await pullFromCloud();
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
-  updateSyncUI(session);
-  closeAuth();
-  showToast("Giriş başarılı", "Verilerin senkronize edildi.");
 }
 
 async function signUp() {
@@ -769,16 +930,19 @@ async function signUp() {
     showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
     return;
   }
-  syncProfileFromInputs();
+  const pendingProfile = {
+    ...defaultState({ type: "user" }).profile,
+    ...getRegisterProfileFromInputs(),
+  };
   const { data, error } = await supabaseClient.auth.signUp({
-    email: elements.syncEmail.value.trim(),
-    password: elements.syncPassword.value,
+    email: elements.registerEmail.value.trim(),
+    password: elements.registerPassword.value,
     options: {
       data: {
-        display_name: getProfileDisplayName(),
-        first_name: state.profile.firstName,
-        last_name: state.profile.lastName,
-        avatar: state.profile.avatar,
+        display_name: pendingProfile.displayName,
+        first_name: pendingProfile.firstName,
+        last_name: pendingProfile.lastName,
+        avatar: pendingProfile.avatar,
       },
     },
   });
@@ -786,17 +950,52 @@ async function signUp() {
     showToast("Kayıt başarısız", error.message);
     return;
   }
-  if (data.user) await upsertProfile(data.user);
+  if (data.session?.user) {
+    const cleanUserState = defaultState({
+      type: "user",
+      userId: data.session.user.id,
+      email: data.session.user.email,
+    });
+    cleanUserState.profile = { ...cleanUserState.profile, ...pendingProfile };
+    setActiveState(cleanUserState, getUserStorageKey(data.session.user.id), {
+      render: false,
+    });
+    await upsertProfile(data.session.user);
+    updateSyncUI(data.session);
+    render();
+  }
   showToast("Kayıt başarılı", "E-postanı doğruladıktan sonra giriş yap.");
+}
+
+async function saveProfile() {
+  if (!supabaseClient) {
+    showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
+    return;
+  }
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+  if (!session) {
+    showToast("Giriş gerekli", "Profilini kaydetmek için giriş yap.");
+    setAuthMode("login");
+    return;
+  }
+  syncProfileFromInputs();
+  await upsertProfile(session.user);
+  await pushToCloud();
+  updateSyncUI(session);
+  render();
+  showToast("Profil kaydedildi", "Hesap bilgilerin güncellendi.");
 }
 
 async function signOut() {
   if (!supabaseClient) return;
+  await pushToCloud();
   await supabaseClient.auth.signOut();
-  state.sync.activeEmail = "";
-  saveState({ markDirty: false, sync: false });
+  resetToGuestState();
   updateSyncUI(null);
-  showToast("Çıkış yapıldı", "Veriler yerelde saklanmaya devam ediyor.");
+  closeAuth();
+  showToast("Çıkış yapıldı", "Guest moda geçildi.");
 }
 
 async function syncNow() {
@@ -805,8 +1004,8 @@ async function syncNow() {
     return;
   }
   syncProfileFromInputs();
-  await pullFromCloud();
   await pushToCloud();
+  await pullFromCloud();
   const {
     data: { session },
   } = await supabaseClient.auth.getSession();
@@ -920,6 +1119,8 @@ function renderSettings() {
   elements.dailyGoalLabel.textContent = `${state.settings.dailyGoal} pomo`;
   elements.profileFirstName.value = state.profile.firstName;
   elements.profileLastName.value = state.profile.lastName;
+  elements.accountFirstName.value = state.profile.firstName;
+  elements.accountLastName.value = state.profile.lastName;
   elements.profileRole.value = state.profile.role;
   elements.profileAvatar.value = state.profile.avatar;
   renderProfile();
@@ -930,9 +1131,13 @@ function getProfileDisplayName() {
   return [state.profile.firstName, state.profile.lastName].filter(Boolean).join(" ").trim() || state.profile.displayName;
 }
 
+function getProfileShortName() {
+  return state.profile.firstName || getProfileDisplayName().split(" ")[0] || "Hesabım";
+}
+
 function syncProfileFromInputs() {
-  state.profile.firstName = elements.profileFirstName.value.trim();
-  state.profile.lastName = elements.profileLastName.value.trim();
+  state.profile.firstName = elements.accountFirstName.value.trim();
+  state.profile.lastName = elements.accountLastName.value.trim();
   state.profile.displayName = [state.profile.firstName, state.profile.lastName].filter(Boolean).join(" ").trim();
   state.profile.role = elements.profileRole.value.trim();
   state.profile.avatar = elements.profileAvatar.value;
@@ -940,15 +1145,27 @@ function syncProfileFromInputs() {
   saveState();
 }
 
+function getRegisterProfileFromInputs() {
+  const firstName = elements.profileFirstName.value.trim();
+  const lastName = elements.profileLastName.value.trim();
+  return {
+    firstName,
+    lastName,
+    displayName: [firstName, lastName].filter(Boolean).join(" ").trim(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 function renderProfile() {
   const isSignedIn = Boolean(state.sync.activeEmail);
   const name = getProfileDisplayName() || state.sync.activeEmail || "PomoFlow kullanıcısı";
-  const meta = state.profile.role || state.sync.activeEmail || "Senkronize hesap";
+  const topbarName = getProfileShortName();
+  const meta = state.profile.role || "Senkronize hesap";
   elements.profileAvatarPreview.textContent = state.profile.avatar;
   elements.profileNamePreview.textContent = name;
   elements.profileMetaPreview.textContent = meta;
   elements.homeProfileAvatar.textContent = isSignedIn ? state.profile.avatar : "👤";
-  elements.homeProfileName.textContent = isSignedIn ? name : "Giriş yap";
+  elements.homeProfileName.textContent = isSignedIn ? topbarName : "Giriş yap";
   elements.homeProfileMeta.textContent = isSignedIn ? meta : "Hesabını senkronize et";
   elements.topbarProfileButton.setAttribute("aria-label", isSignedIn ? "Hesabı aç" : "Giriş yap");
 }
@@ -1026,6 +1243,8 @@ elements.settingsButton.addEventListener("click", openSettings);
 elements.topbarProfileButton.addEventListener("click", openAuth);
 elements.settingsClose.addEventListener("click", closeSettings);
 elements.authClose.addEventListener("click", closeAuth);
+elements.showRegister.addEventListener("click", () => setAuthMode("register"));
+elements.showLogin.addEventListener("click", () => setAuthMode("login"));
 elements.settingsOverlay.addEventListener("click", (e) => {
   if (e.target === elements.settingsOverlay) closeSettings();
 });
@@ -1112,8 +1331,9 @@ elements.syncSignIn.addEventListener("click", signIn);
 elements.syncSignUp.addEventListener("click", signUp);
 elements.syncSignOut.addEventListener("click", signOut);
 elements.syncNow.addEventListener("click", syncNow);
+elements.saveProfile.addEventListener("click", saveProfile);
 
-[elements.profileFirstName, elements.profileLastName, elements.profileRole, elements.profileAvatar].forEach((input) => {
+[elements.accountFirstName, elements.accountLastName, elements.profileRole, elements.profileAvatar].forEach((input) => {
   input.addEventListener("change", () => {
     syncProfileFromInputs();
     renderProfile();
@@ -1127,12 +1347,21 @@ render();
 
 supabaseClient = initSupabase();
 if (supabaseClient) {
-  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+  supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
+    if (session) {
+      await pullFromCloud();
+    }
     updateSyncUI(session);
-    if (session) pullFromCloud();
   });
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_IN" && session) {
+      setTimeout(async () => {
+        await pullFromCloud({ session });
+        updateSyncUI(session);
+      }, 0);
+      return;
+    }
     updateSyncUI(session);
   });
 } else {
@@ -1142,16 +1371,4 @@ if (supabaseClient) {
 if (elements.backgroundVideo) {
   elements.backgroundVideo.muted = true;
   elements.backgroundVideo.play().catch(() => {});
-}
-
-// Migrate old storage key
-try {
-  const old = localStorage.getItem("pomoflow-state");
-  if (old && !localStorage.getItem(STORAGE_KEY)) {
-    localStorage.setItem(STORAGE_KEY, old);
-    localStorage.removeItem("pomoflow-state");
-    location.reload();
-  }
-} catch {
-  /* ignore */
 }

@@ -1003,9 +1003,28 @@ h2 {
   display: block;
 }
 
-.auth-body .secondary-button,
-.auth-body .primary-button {
-  min-height: 46px;
+.auth-modal {
+  width: min(440px, calc(100vw - 28px));
+}
+
+.auth-body {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-panel[hidden] {
+  display: none;
+}
+
+.auth-submit,
+.auth-body .secondary-button {
+  width: 100%;
+  min-height: 48px;
 }
 
 .auth-grid {
@@ -1016,8 +1035,29 @@ h2 {
 
 .account-divider {
   height: 1px;
-  margin: 18px 0;
+  margin: 4px 0;
   background: var(--line);
+}
+
+.auth-switch {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.auth-switch button {
+  border: 0;
+  padding: 0;
+  color: var(--amber);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.auth-switch button:hover {
+  text-decoration: underline;
 }
 
 .profile-preview span {
@@ -1136,20 +1176,6 @@ h2 {
   flex-direction: column;
   gap: 8px;
   margin-top: 12px;
-}
-
-.sync-hint {
-  margin: 16px 0 0;
-  font-size: 0.78rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.sync-hint code {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--surface);
-  font-size: 0.75rem;
 }
 
 /* ─── Toast ────────────────────────────────────────────────────────────────── */
@@ -1362,13 +1388,8 @@ h2 {
   }
 
   .auth-body {
-    display: flex;
-    flex-direction: column;
     min-height: calc(100svh - 132px);
-  }
-
-  .auth-body .sync-actions {
-    margin-top: auto;
+    align-content: start;
   }
 
   .auth-grid {

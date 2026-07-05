@@ -287,58 +287,84 @@
         </header>
 
         <div class="modal-body auth-body">
-          <div class="profile-preview" id="authProfilePreview" hidden>
-            <div class="profile-avatar" id="profileAvatarPreview">🍅</div>
-            <div>
-              <strong id="profileNamePreview">PomoFlow kullanıcısı</strong>
-              <span id="profileMetaPreview">Senkronize profil</span>
-            </div>
-          </div>
-
-          <div class="auth-grid">
+          <section class="auth-panel" id="authLoginPanel" data-auth-panel="login">
             <div class="setting-row">
-              <label for="profileFirstName">Ad</label>
-              <input id="profileFirstName" type="text" maxlength="24" placeholder="Selcan" />
+              <label for="syncEmail">E-posta</label>
+              <input id="syncEmail" type="email" autocomplete="email" placeholder="ornek@email.com" />
             </div>
             <div class="setting-row">
-              <label for="profileLastName">Soyad</label>
-              <input id="profileLastName" type="text" maxlength="28" placeholder="Aktürk" />
+              <label for="syncPassword">Şifre</label>
+              <input id="syncPassword" type="password" autocomplete="current-password" placeholder="••••••••" />
             </div>
-          </div>
-          <div class="setting-row">
-            <label for="profileRole">Odak alanı</label>
-            <input id="profileRole" type="text" maxlength="48" placeholder="Frontend geliştirici, öğrenci..." />
-          </div>
-          <div class="setting-row">
-            <label for="profileAvatar">Avatar</label>
-            <select id="profileAvatar">
-              <option value="🍅">🍅 Pomodoro</option>
-              <option value="☕">☕ Kahve</option>
-              <option value="🌙">🌙 Gece modu</option>
-              <option value="🔥">🔥 Streak</option>
-              <option value="🎧">🎧 Müzik</option>
-              <option value="✨">✨ Akış</option>
-            </select>
-          </div>
+            <button class="primary-button auth-submit" id="syncSignIn" type="button">Giriş yap</button>
+            <p class="auth-switch">Hesabın yok mu? <button id="showRegister" type="button">Kayıt ol</button></p>
+          </section>
 
-          <div class="account-divider"></div>
-          <p class="sync-status" id="syncStatus">Yerel kayıt kullanılıyor</p>
-          <div class="sync-meta" id="syncMeta">Son senkron: Henüz yok</div>
-          <div class="setting-row">
-            <label for="syncEmail">E-posta</label>
-            <input id="syncEmail" type="email" placeholder="ornek@email.com" />
-          </div>
-          <div class="setting-row">
-            <label for="syncPassword">Şifre</label>
-            <input id="syncPassword" type="password" placeholder="••••••••" />
-          </div>
-          <div class="sync-actions">
-            <button class="primary-button" id="syncSignIn" type="button">Giriş yap</button>
-            <button class="secondary-button" id="syncSignUp" type="button">Kayıt ol</button>
-            <button class="secondary-button" id="syncNow" type="button">Şimdi senkronize et</button>
-            <button class="secondary-button" id="syncSignOut" type="button" hidden>Çıkış yap</button>
-          </div>
-          <p class="sync-hint">Supabase yapılandırması için <code>config.js</code> dosyasını düzenle.</p>
+          <section class="auth-panel" id="authRegisterPanel" data-auth-panel="register" hidden>
+            <div class="auth-grid">
+              <div class="setting-row">
+                <label for="profileFirstName">Ad</label>
+                <input id="profileFirstName" type="text" maxlength="24" autocomplete="given-name" placeholder="Selcan" />
+              </div>
+              <div class="setting-row">
+                <label for="profileLastName">Soyad</label>
+                <input id="profileLastName" type="text" maxlength="28" autocomplete="family-name" placeholder="Aktürk" />
+              </div>
+            </div>
+            <div class="setting-row">
+              <label for="registerEmail">E-posta</label>
+              <input id="registerEmail" type="email" autocomplete="email" placeholder="ornek@email.com" />
+            </div>
+            <div class="setting-row">
+              <label for="registerPassword">Şifre</label>
+              <input id="registerPassword" type="password" autocomplete="new-password" placeholder="••••••••" />
+            </div>
+            <button class="primary-button auth-submit" id="syncSignUp" type="button">Kayıt ol</button>
+            <p class="auth-switch">Zaten hesabın var mı? <button id="showLogin" type="button">Giriş yap</button></p>
+          </section>
+
+          <section class="auth-panel account-panel" id="authAccountPanel" data-auth-panel="account" hidden>
+            <div class="profile-preview" id="authProfilePreview">
+              <div class="profile-avatar" id="profileAvatarPreview">🍅</div>
+              <div>
+                <strong id="profileNamePreview">PomoFlow kullanıcısı</strong>
+                <span id="profileMetaPreview">Senkronize profil</span>
+              </div>
+            </div>
+            <div class="auth-grid">
+              <div class="setting-row">
+                <label for="accountFirstName">Ad</label>
+                <input id="accountFirstName" type="text" maxlength="24" autocomplete="given-name" placeholder="Selcan" />
+              </div>
+              <div class="setting-row">
+                <label for="accountLastName">Soyad</label>
+                <input id="accountLastName" type="text" maxlength="28" autocomplete="family-name" placeholder="Aktürk" />
+              </div>
+            </div>
+            <div class="setting-row">
+              <label for="profileRole">Odak alanı</label>
+              <input id="profileRole" type="text" maxlength="48" placeholder="Frontend geliştirici, öğrenci..." />
+            </div>
+            <div class="setting-row">
+              <label for="profileAvatar">Avatar</label>
+              <select id="profileAvatar">
+                <option value="🍅">🍅 Pomodoro</option>
+                <option value="☕">☕ Kahve</option>
+                <option value="🌙">🌙 Gece modu</option>
+                <option value="🔥">🔥 Streak</option>
+                <option value="🎧">🎧 Müzik</option>
+                <option value="✨">✨ Akış</option>
+              </select>
+            </div>
+            <button class="primary-button auth-submit" id="saveProfile" type="button">Profili kaydet</button>
+            <div class="account-divider"></div>
+            <p class="sync-status" id="syncStatus">Yerel kayıt kullanılıyor</p>
+            <div class="sync-meta" id="syncMeta">Son senkron: Henüz yok</div>
+            <div class="sync-actions">
+              <button class="secondary-button" id="syncNow" type="button">Şimdi senkronize et</button>
+              <button class="secondary-button" id="syncSignOut" type="button">Çıkış yap</button>
+            </div>
+          </section>
         </div>
       </div>
     </div>

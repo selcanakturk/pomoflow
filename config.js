@@ -1,5 +1,4 @@
-// Supabase yapılandırması — kendi projenin bilgilerini buraya ekle
 window.POMOFLOW_CONFIG = {
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  supabaseUrl: "https://twkcrdfrzqizzmtqxhag.supabase.co",
+  supabaseAnonKey: "sb_publishable_3XA-CsC9psv4mtfKOXVBHg_kSktr8tA",
 };
