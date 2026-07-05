@@ -253,7 +253,8 @@ h2 {
 }
 
 .date-pill,
-.icon-btn {
+.icon-btn,
+.topbar-profile {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--ink);
@@ -278,9 +279,55 @@ h2 {
 }
 
 .icon-btn:hover,
-.settings-button:hover {
+.settings-button:hover,
+.topbar-profile:hover {
   transform: translateY(-2px);
   background: var(--surface-hover);
+}
+
+.topbar-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  max-width: 230px;
+  min-height: 44px;
+  padding: 5px 12px 5px 6px;
+  text-align: left;
+}
+
+.topbar-profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 107, 97, 0.28), rgba(255, 209, 102, 0.18));
+  font-size: 1.1rem;
+}
+
+.topbar-profile-copy {
+  min-width: 0;
+}
+
+.topbar-profile-copy strong,
+.topbar-profile-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-profile-copy strong {
+  font-size: 0.82rem;
+  line-height: 1.15;
+}
+
+.topbar-profile-copy small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .streak-badge {
@@ -564,7 +611,11 @@ h2 {
 .modal-panel input[type="email"],
 .modal-panel input[type="password"],
 .modal-panel input[type="text"],
-.modal-panel select {
+.modal-panel select,
+.auth-body input[type="email"],
+.auth-body input[type="password"],
+.auth-body input[type="text"],
+.auth-body select {
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--line);
@@ -578,14 +629,17 @@ h2 {
 
 .task-form input::placeholder,
 .spotify-form input::placeholder,
-.modal-panel input::placeholder {
+.modal-panel input::placeholder,
+.auth-body input::placeholder {
   color: var(--muted);
 }
 
 .task-form input:focus,
 .spotify-form input:focus,
 .modal-panel input:focus,
-.modal-panel select:focus {
+.modal-panel select:focus,
+.auth-body input:focus,
+.auth-body select:focus {
   border-color: rgba(255, 107, 97, 0.45);
   box-shadow: 0 0 0 4px rgba(255, 107, 97, 0.1);
 }
@@ -949,6 +1003,23 @@ h2 {
   display: block;
 }
 
+.auth-body .secondary-button,
+.auth-body .primary-button {
+  min-height: 46px;
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-divider {
+  height: 1px;
+  margin: 18px 0;
+  background: var(--line);
+}
+
 .profile-preview span {
   margin-top: 4px;
   color: var(--muted);
@@ -1155,6 +1226,7 @@ h2 {
     grid-template-columns: 1fr;
     min-height: auto;
     text-align: center;
+    justify-items: center;
   }
 
   .timer-copy { order: 2; align-self: auto; }
@@ -1164,6 +1236,7 @@ h2 {
 
   .insight-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
 
   .music-block,
@@ -1184,9 +1257,21 @@ h2 {
     min-height: auto;
   }
 
+  .timer-panel {
+    min-height: calc(100svh - 210px);
+    align-content: center;
+    gap: 18px;
+  }
+
   .topbar-meta {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .topbar-profile {
+    order: -1;
+    width: 100%;
+    max-width: none;
   }
 
   .session-switch {
@@ -1199,6 +1284,31 @@ h2 {
     font-size: clamp(3rem, 16vw, 4.5rem);
   }
 
+  .timer-ring {
+    width: min(88vw, 340px);
+  }
+
+  .primary-button,
+  .secondary-button,
+  .icon-button,
+  .icon-btn,
+  .duration-pills button,
+  .switch-option,
+  .task-form button,
+  .spotify-form button {
+    min-height: 50px;
+  }
+
+  .primary-button {
+    width: min(100%, 180px);
+  }
+
+  .icon-button,
+  .icon-btn {
+    width: 50px;
+    height: 50px;
+  }
+
   .task-form,
   .spotify-form,
   .insight-panel {
@@ -1208,6 +1318,77 @@ h2 {
   .task-form button,
   .spotify-form button {
     width: 100%;
+  }
+
+  .music-block {
+    gap: 10px;
+  }
+
+  .music-block iframe {
+    height: 96px;
+  }
+
+  .modal-overlay {
+    align-items: stretch;
+    justify-items: stretch;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .modal {
+    width: 100%;
+    max-height: none;
+    min-height: 100svh;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .modal-header {
+    padding: max(18px, env(safe-area-inset-top)) 18px 0;
+  }
+
+  .modal-tabs {
+    padding: 14px 18px 0;
+  }
+
+  .modal-tab {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+
+  .modal-body {
+    padding: 18px 18px max(28px, env(safe-area-inset-bottom));
+  }
+
+  .auth-body {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100svh - 132px);
+  }
+
+  .auth-body .sync-actions {
+    margin-top: auto;
+  }
+
+  .auth-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .range-control {
+    width: 100%;
+  }
+
+  .range-control input[type="range"] {
+    flex: 1;
+    width: auto;
   }
 
   .stat-row {

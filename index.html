@@ -33,6 +33,13 @@
             <h1>PomoFlow</h1>
           </div>
           <div class="topbar-meta">
+            <button class="topbar-profile" id="authButton" type="button" aria-label="Giriş yap">
+              <span class="topbar-profile-avatar" id="homeProfileAvatar">🍅</span>
+              <span class="topbar-profile-copy">
+                <strong id="homeProfileName">Giriş yap</strong>
+                <small id="homeProfileMeta">Hesabını senkronize et</small>
+              </span>
+            </button>
             <div class="streak-badge" id="streakBadge" title="Günlük seri">
               <span class="streak-icon">🔥</span>
               <span id="streakCount">0</span>
@@ -185,10 +192,8 @@
 
         <div class="modal-tabs" role="tablist">
           <button class="modal-tab active" data-tab="timer" type="button" role="tab">⏱ Zamanlayıcı</button>
-          <button class="modal-tab" data-tab="profile" type="button" role="tab">👤 Profil</button>
           <button class="modal-tab" data-tab="notifications" type="button" role="tab">🔔 Bildirimler</button>
           <button class="modal-tab" data-tab="goals" type="button" role="tab">🎯 Hedefler</button>
-          <button class="modal-tab" data-tab="sync" type="button" role="tab">☁️ Senkron</button>
         </div>
 
         <div class="modal-body">
@@ -223,37 +228,6 @@
               <label for="autoStartFocus">Pomodoro'yu otomatik başlat</label>
               <input id="autoStartFocus" type="checkbox" class="toggle" />
             </div>
-          </div>
-
-          <!-- Profil -->
-          <div class="modal-panel" data-panel="profile">
-            <div class="profile-preview">
-              <div class="profile-avatar" id="profileAvatarPreview">🍅</div>
-              <div>
-                <strong id="profileNamePreview">PomoFlow kullanıcısı</strong>
-                <span id="profileMetaPreview">Yerel profil</span>
-              </div>
-            </div>
-            <div class="setting-row">
-              <label for="profileName">Görünen ad</label>
-              <input id="profileName" type="text" maxlength="40" placeholder="Selcan" />
-            </div>
-            <div class="setting-row">
-              <label for="profileRole">Odak alanı</label>
-              <input id="profileRole" type="text" maxlength="48" placeholder="Frontend geliştirici, öğrenci..." />
-            </div>
-            <div class="setting-row">
-              <label for="profileAvatar">Avatar</label>
-              <select id="profileAvatar">
-                <option value="🍅">🍅 Pomodoro</option>
-                <option value="☕">☕ Kahve</option>
-                <option value="🌙">🌙 Gece modu</option>
-                <option value="🔥">🔥 Streak</option>
-                <option value="🎧">🎧 Müzik</option>
-                <option value="✨">✨ Akış</option>
-              </select>
-            </div>
-            <button class="secondary-button" id="saveProfile" type="button">Profili kaydet</button>
           </div>
 
           <!-- Bildirimler -->
@@ -297,27 +271,74 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <!-- Senkron -->
-          <div class="modal-panel" data-panel="sync">
-            <p class="sync-status" id="syncStatus">Yerel kayıt kullanılıyor</p>
-            <div class="sync-meta" id="syncMeta">Son senkron: Henüz yok</div>
-            <div class="setting-row">
-              <label for="syncEmail">E-posta (Supabase)</label>
-              <input id="syncEmail" type="email" placeholder="ornek@email.com" />
-            </div>
-            <div class="setting-row">
-              <label for="syncPassword">Şifre</label>
-              <input id="syncPassword" type="password" placeholder="••••••••" />
-            </div>
-            <div class="sync-actions">
-              <button class="primary-button" id="syncSignIn" type="button">Giriş yap</button>
-              <button class="secondary-button" id="syncSignUp" type="button">Kayıt ol</button>
-              <button class="secondary-button" id="syncNow" type="button">Şimdi senkronize et</button>
-              <button class="secondary-button" id="syncSignOut" type="button" hidden>Çıkış yap</button>
-            </div>
-            <p class="sync-hint">Supabase yapılandırması için <code>config.js</code> dosyasını düzenle.</p>
+    <!-- Hesap Modal -->
+    <div class="modal-overlay" id="authOverlay" hidden>
+      <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">Hesap</p>
+            <h2 id="authTitle">Giriş yap</h2>
           </div>
+          <button class="icon-btn modal-close" id="authClose" type="button" aria-label="Kapat">✕</button>
+        </header>
+
+        <div class="modal-body auth-body">
+          <div class="profile-preview" id="authProfilePreview" hidden>
+            <div class="profile-avatar" id="profileAvatarPreview">🍅</div>
+            <div>
+              <strong id="profileNamePreview">PomoFlow kullanıcısı</strong>
+              <span id="profileMetaPreview">Senkronize profil</span>
+            </div>
+          </div>
+
+          <div class="auth-grid">
+            <div class="setting-row">
+              <label for="profileFirstName">Ad</label>
+              <input id="profileFirstName" type="text" maxlength="24" placeholder="Selcan" />
+            </div>
+            <div class="setting-row">
+              <label for="profileLastName">Soyad</label>
+              <input id="profileLastName" type="text" maxlength="28" placeholder="Aktürk" />
+            </div>
+          </div>
+          <div class="setting-row">
+            <label for="profileRole">Odak alanı</label>
+            <input id="profileRole" type="text" maxlength="48" placeholder="Frontend geliştirici, öğrenci..." />
+          </div>
+          <div class="setting-row">
+            <label for="profileAvatar">Avatar</label>
+            <select id="profileAvatar">
+              <option value="🍅">🍅 Pomodoro</option>
+              <option value="☕">☕ Kahve</option>
+              <option value="🌙">🌙 Gece modu</option>
+              <option value="🔥">🔥 Streak</option>
+              <option value="🎧">🎧 Müzik</option>
+              <option value="✨">✨ Akış</option>
+            </select>
+          </div>
+
+          <div class="account-divider"></div>
+          <p class="sync-status" id="syncStatus">Yerel kayıt kullanılıyor</p>
+          <div class="sync-meta" id="syncMeta">Son senkron: Henüz yok</div>
+          <div class="setting-row">
+            <label for="syncEmail">E-posta</label>
+            <input id="syncEmail" type="email" placeholder="ornek@email.com" />
+          </div>
+          <div class="setting-row">
+            <label for="syncPassword">Şifre</label>
+            <input id="syncPassword" type="password" placeholder="••••••••" />
+          </div>
+          <div class="sync-actions">
+            <button class="primary-button" id="syncSignIn" type="button">Giriş yap</button>
+            <button class="secondary-button" id="syncSignUp" type="button">Kayıt ol</button>
+            <button class="secondary-button" id="syncNow" type="button">Şimdi senkronize et</button>
+            <button class="secondary-button" id="syncSignOut" type="button" hidden>Çıkış yap</button>
+          </div>
+          <p class="sync-hint">Supabase yapılandırması için <code>config.js</code> dosyasını düzenle.</p>
         </div>
       </div>
     </div>

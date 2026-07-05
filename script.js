@@ -71,6 +71,8 @@ function defaultState() {
       autoStartFocus: false,
     },
     profile: {
+      firstName: "",
+      lastName: "",
       displayName: "",
       role: "",
       avatar: "🍅",
@@ -84,6 +86,7 @@ function defaultState() {
       lastPulledAt: null,
       lastPushedAt: null,
       remoteUpdatedAt: null,
+      activeEmail: "",
     },
   };
 }
@@ -165,6 +168,10 @@ const elements = {
   weekChart: document.querySelector("#weekChart"),
   chartSummary: document.querySelector("#chartSummary"),
   quoteText: document.querySelector("#quoteText"),
+  homeProfileAvatar: document.querySelector("#homeProfileAvatar"),
+  homeProfileName: document.querySelector("#homeProfileName"),
+  homeProfileMeta: document.querySelector("#homeProfileMeta"),
+  topbarProfileButton: document.querySelector("#authButton"),
   streakBadge: document.querySelector("#streakBadge"),
   streakCount: document.querySelector("#streakCount"),
   spotifyPlayer: document.querySelector("#spotifyPlayer"),
@@ -174,6 +181,10 @@ const elements = {
   settingsButton: document.querySelector("#settingsButton"),
   settingsOverlay: document.querySelector("#settingsOverlay"),
   settingsClose: document.querySelector("#settingsClose"),
+  authOverlay: document.querySelector("#authOverlay"),
+  authClose: document.querySelector("#authClose"),
+  authTitle: document.querySelector("#authTitle"),
+  authProfilePreview: document.querySelector("#authProfilePreview"),
   modalTabs: document.querySelectorAll(".modal-tab"),
   modalPanels: document.querySelectorAll(".modal-panel"),
   focusMinutes: document.querySelector("#focusMinutes"),
@@ -202,13 +213,13 @@ const elements = {
   syncSignUp: document.querySelector("#syncSignUp"),
   syncNow: document.querySelector("#syncNow"),
   syncSignOut: document.querySelector("#syncSignOut"),
-  profileName: document.querySelector("#profileName"),
+  profileFirstName: document.querySelector("#profileFirstName"),
+  profileLastName: document.querySelector("#profileLastName"),
   profileRole: document.querySelector("#profileRole"),
   profileAvatar: document.querySelector("#profileAvatar"),
   profileAvatarPreview: document.querySelector("#profileAvatarPreview"),
   profileNamePreview: document.querySelector("#profileNamePreview"),
   profileMetaPreview: document.querySelector("#profileMetaPreview"),
-  saveProfile: document.querySelector("#saveProfile"),
   toastContainer: document.querySelector("#toastContainer"),
 };
 
@@ -573,6 +584,17 @@ function closeSettings() {
   document.body.classList.remove("modal-open");
 }
 
+function openAuth() {
+  elements.authOverlay.hidden = false;
+  document.body.classList.add("modal-open");
+  elements.syncEmail.focus();
+}
+
+function closeAuth() {
+  elements.authOverlay.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
 function switchTab(tabName) {
   elements.modalTabs.forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.tab === tabName);
@@ -645,7 +667,7 @@ async function upsertProfile(user) {
   await supabaseClient.from("pomoflow_profiles").upsert(
     {
       user_id: user.id,
-      display_name: state.profile.displayName || user.email?.split("@")[0] || "PomoFlow kullanıcısı",
+      display_name: getProfileDisplayName() || user.email?.split("@")[0] || "PomoFlow kullanıcısı",
       role: state.profile.role,
       avatar: state.profile.avatar,
       updated_at: new Date().toISOString(),
@@ -697,8 +719,9 @@ async function pullFromCloud() {
 }
 
 function updateSyncUI(session) {
+  state.sync.activeEmail = session?.user?.email ?? "";
   if (session) {
-    const name = state.profile.displayName || session.user.email;
+    const name = getProfileDisplayName() || session.user.email;
     elements.syncStatus.textContent = `Senkronize: ${name}`;
     elements.syncSignOut.hidden = false;
     elements.syncSignIn.hidden = true;
@@ -713,7 +736,10 @@ function updateSyncUI(session) {
     elements.syncSignUp.hidden = false;
     elements.syncNow.hidden = true;
   }
+  elements.authTitle.textContent = session ? "Hesabım" : "Giriş yap";
+  elements.authProfilePreview.hidden = !session;
   renderSyncMeta();
+  renderProfile();
 }
 
 async function signIn() {
@@ -734,6 +760,7 @@ async function signIn() {
     data: { session },
   } = await supabaseClient.auth.getSession();
   updateSyncUI(session);
+  closeAuth();
   showToast("Giriş başarılı", "Verilerin senkronize edildi.");
 }
 
@@ -742,12 +769,15 @@ async function signUp() {
     showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
     return;
   }
+  syncProfileFromInputs();
   const { data, error } = await supabaseClient.auth.signUp({
     email: elements.syncEmail.value.trim(),
     password: elements.syncPassword.value,
     options: {
       data: {
-        display_name: state.profile.displayName,
+        display_name: getProfileDisplayName(),
+        first_name: state.profile.firstName,
+        last_name: state.profile.lastName,
         avatar: state.profile.avatar,
       },
     },
@@ -763,6 +793,8 @@ async function signUp() {
 async function signOut() {
   if (!supabaseClient) return;
   await supabaseClient.auth.signOut();
+  state.sync.activeEmail = "";
+  saveState({ markDirty: false, sync: false });
   updateSyncUI(null);
   showToast("Çıkış yapıldı", "Veriler yerelde saklanmaya devam ediyor.");
 }
@@ -772,6 +804,7 @@ async function syncNow() {
     showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
     return;
   }
+  syncProfileFromInputs();
   await pullFromCloud();
   await pushToCloud();
   const {
@@ -885,19 +918,39 @@ function renderSettings() {
   elements.soundVolumeLabel.textContent = `${state.settings.soundVolume}%`;
   elements.dailyGoal.value = state.settings.dailyGoal;
   elements.dailyGoalLabel.textContent = `${state.settings.dailyGoal} pomo`;
-  elements.profileName.value = state.profile.displayName;
+  elements.profileFirstName.value = state.profile.firstName;
+  elements.profileLastName.value = state.profile.lastName;
   elements.profileRole.value = state.profile.role;
   elements.profileAvatar.value = state.profile.avatar;
   renderProfile();
   renderSyncMeta();
 }
 
+function getProfileDisplayName() {
+  return [state.profile.firstName, state.profile.lastName].filter(Boolean).join(" ").trim() || state.profile.displayName;
+}
+
+function syncProfileFromInputs() {
+  state.profile.firstName = elements.profileFirstName.value.trim();
+  state.profile.lastName = elements.profileLastName.value.trim();
+  state.profile.displayName = [state.profile.firstName, state.profile.lastName].filter(Boolean).join(" ").trim();
+  state.profile.role = elements.profileRole.value.trim();
+  state.profile.avatar = elements.profileAvatar.value;
+  state.profile.updatedAt = new Date().toISOString();
+  saveState();
+}
+
 function renderProfile() {
-  const name = state.profile.displayName || "PomoFlow kullanıcısı";
+  const isSignedIn = Boolean(state.sync.activeEmail);
+  const name = getProfileDisplayName() || state.sync.activeEmail || "PomoFlow kullanıcısı";
+  const meta = state.profile.role || state.sync.activeEmail || "Senkronize hesap";
   elements.profileAvatarPreview.textContent = state.profile.avatar;
   elements.profileNamePreview.textContent = name;
-  elements.profileMetaPreview.textContent =
-    state.profile.role || `Katılım: ${formatSyncTime(state.profile.createdAt)}`;
+  elements.profileMetaPreview.textContent = meta;
+  elements.homeProfileAvatar.textContent = isSignedIn ? state.profile.avatar : "👤";
+  elements.homeProfileName.textContent = isSignedIn ? name : "Giriş yap";
+  elements.homeProfileMeta.textContent = isSignedIn ? meta : "Hesabını senkronize et";
+  elements.topbarProfileButton.setAttribute("aria-label", isSignedIn ? "Hesabı aç" : "Giriş yap");
 }
 
 function renderSyncMeta() {
@@ -970,13 +1023,19 @@ elements.spotifyForm.addEventListener("submit", (event) => {
 
 elements.themeToggle.addEventListener("click", toggleTheme);
 elements.settingsButton.addEventListener("click", openSettings);
+elements.topbarProfileButton.addEventListener("click", openAuth);
 elements.settingsClose.addEventListener("click", closeSettings);
+elements.authClose.addEventListener("click", closeAuth);
 elements.settingsOverlay.addEventListener("click", (e) => {
   if (e.target === elements.settingsOverlay) closeSettings();
+});
+elements.authOverlay.addEventListener("click", (e) => {
+  if (e.target === elements.authOverlay) closeAuth();
 });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !elements.settingsOverlay.hidden) closeSettings();
+  if (e.key === "Escape" && !elements.authOverlay.hidden) closeAuth();
 });
 
 elements.modalTabs.forEach((tab) => {
@@ -1053,14 +1112,12 @@ elements.syncSignIn.addEventListener("click", signIn);
 elements.syncSignUp.addEventListener("click", signUp);
 elements.syncSignOut.addEventListener("click", signOut);
 elements.syncNow.addEventListener("click", syncNow);
-elements.saveProfile.addEventListener("click", () => {
-  state.profile.displayName = elements.profileName.value.trim();
-  state.profile.role = elements.profileRole.value.trim();
-  state.profile.avatar = elements.profileAvatar.value;
-  state.profile.updatedAt = new Date().toISOString();
-  saveState();
-  renderProfile();
-  showToast("Profil güncellendi", "Profil bilgilerin kaydedildi.");
+
+[elements.profileFirstName, elements.profileLastName, elements.profileRole, elements.profileAvatar].forEach((input) => {
+  input.addEventListener("change", () => {
+    syncProfileFromInputs();
+    renderProfile();
+  });
 });
 
 // ─── Init ────────────────────────────────────────────────────────────────────
@@ -1078,6 +1135,8 @@ if (supabaseClient) {
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     updateSyncUI(session);
   });
+} else {
+  updateSyncUI(null);
 }
 
 if (elements.backgroundVideo) {
