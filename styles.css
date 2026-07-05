@@ -562,7 +562,9 @@ h2 {
 .task-form input,
 .spotify-form input,
 .modal-panel input[type="email"],
-.modal-panel input[type="password"] {
+.modal-panel input[type="password"],
+.modal-panel input[type="text"],
+.modal-panel select {
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--line);
@@ -582,7 +584,8 @@ h2 {
 
 .task-form input:focus,
 .spotify-form input:focus,
-.modal-panel input:focus {
+.modal-panel input:focus,
+.modal-panel select:focus {
   border-color: rgba(255, 107, 97, 0.45);
   box-shadow: 0 0 0 4px rgba(255, 107, 97, 0.1);
 }
@@ -920,6 +923,39 @@ h2 {
   font-size: 0.9rem;
 }
 
+.profile-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 107, 97, 0.24), rgba(255, 209, 102, 0.16));
+  font-size: 1.8rem;
+}
+
+.profile-preview strong,
+.profile-preview span {
+  display: block;
+}
+
+.profile-preview span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .setting-row--toggle {
   padding: 12px 0;
 }
@@ -1015,6 +1051,13 @@ h2 {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--muted);
+}
+
+.sync-meta {
+  margin: -8px 0 14px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .sync-actions {

@@ -48,6 +48,7 @@ const quotes = [
 function defaultState() {
   return {
     version: STATE_VERSION,
+    clientId: crypto.randomUUID(),
     mode: "focus",
     running: false,
     focusSessions: 0,
@@ -69,8 +70,21 @@ function defaultState() {
       autoStartBreaks: false,
       autoStartFocus: false,
     },
+    profile: {
+      displayName: "",
+      role: "",
+      avatar: "🍅",
+      createdAt: new Date().toISOString(),
+      updatedAt: null,
+    },
     stats: {},
     streak: { current: 0, longest: 0, lastActiveDate: null },
+    sync: {
+      localUpdatedAt: null,
+      lastPulledAt: null,
+      lastPushedAt: null,
+      remoteUpdatedAt: null,
+    },
   };
 }
 
@@ -104,8 +118,11 @@ function loadState() {
       mode: modeDetails[saved.mode] ? saved.mode : "focus",
       durations,
       settings: { ...fallback.settings, ...saved.settings },
+      profile: { ...fallback.profile, ...saved.profile },
       stats: saved.stats ?? {},
       streak: { ...fallback.streak, ...saved.streak },
+      sync: { ...fallback.sync, ...saved.sync },
+      clientId: saved.clientId ?? fallback.clientId,
       running: false,
     };
   } catch {
@@ -178,11 +195,20 @@ const elements = {
   testNotification: document.querySelector("#testNotification"),
   testSound: document.querySelector("#testSound"),
   syncStatus: document.querySelector("#syncStatus"),
+  syncMeta: document.querySelector("#syncMeta"),
   syncEmail: document.querySelector("#syncEmail"),
   syncPassword: document.querySelector("#syncPassword"),
   syncSignIn: document.querySelector("#syncSignIn"),
   syncSignUp: document.querySelector("#syncSignUp"),
+  syncNow: document.querySelector("#syncNow"),
   syncSignOut: document.querySelector("#syncSignOut"),
+  profileName: document.querySelector("#profileName"),
+  profileRole: document.querySelector("#profileRole"),
+  profileAvatar: document.querySelector("#profileAvatar"),
+  profileAvatarPreview: document.querySelector("#profileAvatarPreview"),
+  profileNamePreview: document.querySelector("#profileNamePreview"),
+  profileMetaPreview: document.querySelector("#profileMetaPreview"),
+  saveProfile: document.querySelector("#saveProfile"),
   toastContainer: document.querySelector("#toastContainer"),
 };
 
@@ -197,12 +223,15 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function saveState() {
+function saveState(options = {}) {
+  if (options.markDirty !== false) {
+    state.sync.localUpdatedAt = new Date().toISOString();
+  }
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({ ...state, running: false }),
   );
-  scheduleSync();
+  if (options.sync !== false) scheduleSync();
 }
 
 function formatTime(seconds) {
@@ -506,15 +535,25 @@ function showToast(title, message) {
   }, 4000);
 }
 
+function formatSyncTime(value) {
+  if (!value) return "Henüz yok";
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 // ─── Theme ───────────────────────────────────────────────────────────────────
 
-function applyTheme(theme) {
+function applyTheme(theme, options = {}) {
   state.settings.theme = theme;
   document.documentElement.dataset.theme = theme;
   elements.themeToggle.textContent = theme === "dark" ? "🌙" : "☀️";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = theme === "dark" ? "#101417" : "#f5f0e8";
-  saveState();
+  saveState(options);
 }
 
 function toggleTheme() {
@@ -568,6 +607,9 @@ async function pushToCloud() {
   const payload = {
     user_id: session.user.id,
     data: {
+      version: state.version,
+      clientId: state.clientId,
+      profile: state.profile,
       focusSessions: state.focusSessions,
       durations: state.durations,
       tasks: state.tasks,
@@ -575,13 +617,41 @@ async function pushToCloud() {
       stats: state.stats,
       streak: state.streak,
       spotifyUrl: state.spotifyUrl,
+      localUpdatedAt: state.sync.localUpdatedAt,
     },
+    client_id: state.clientId,
     updated_at: new Date().toISOString(),
   };
 
-  await supabaseClient.from("pomoflow_data").upsert(payload, {
+  const { error } = await supabaseClient.from("pomoflow_data").upsert(payload, {
     onConflict: "user_id",
   });
+
+  if (error) {
+    showToast("Senkron hatası", error.message);
+    return;
+  }
+
+  await upsertProfile(session.user);
+  const pushedAt = new Date().toISOString();
+  state.sync.lastPushedAt = pushedAt;
+  state.sync.remoteUpdatedAt = pushedAt;
+  saveState({ markDirty: false, sync: false });
+  renderSyncMeta();
+}
+
+async function upsertProfile(user) {
+  if (!supabaseClient || !user) return;
+  await supabaseClient.from("pomoflow_profiles").upsert(
+    {
+      user_id: user.id,
+      display_name: state.profile.displayName || user.email?.split("@")[0] || "PomoFlow kullanıcısı",
+      role: state.profile.role,
+      avatar: state.profile.avatar,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
 }
 
 async function pullFromCloud() {
@@ -593,13 +663,22 @@ async function pullFromCloud() {
 
   const { data, error } = await supabaseClient
     .from("pomoflow_data")
-    .select("data, updated_at")
+    .select("data, updated_at, client_id")
     .eq("user_id", session.user.id)
     .maybeSingle();
 
   if (error || !data?.data) return;
+  const localTime = new Date(state.sync.localUpdatedAt ?? 0).getTime();
+  const remoteTime = new Date(data.updated_at ?? 0).getTime();
+  const remoteIsNewer = remoteTime >= localTime;
+  if (!remoteIsNewer) {
+    await pushToCloud();
+    return;
+  }
 
   const cloud = data.data;
+  state.version = cloud.version ?? state.version;
+  state.profile = { ...state.profile, ...cloud.profile };
   state.focusSessions = cloud.focusSessions ?? state.focusSessions;
   state.durations = { ...state.durations, ...cloud.durations };
   state.tasks = cloud.tasks ?? state.tasks;
@@ -607,20 +686,24 @@ async function pullFromCloud() {
   state.stats = cloud.stats ?? state.stats;
   state.streak = { ...state.streak, ...cloud.streak };
   state.spotifyUrl = cloud.spotifyUrl ?? state.spotifyUrl;
+  state.sync.remoteUpdatedAt = data.updated_at;
+  state.sync.lastPulledAt = new Date().toISOString();
 
   remainingSeconds = state.durations[state.mode] * 60;
   totalSeconds = remainingSeconds;
-  saveState();
-  applyTheme(state.settings.theme);
+  saveState({ markDirty: false, sync: false });
+  applyTheme(state.settings.theme, { markDirty: false, sync: false });
   render();
 }
 
 function updateSyncUI(session) {
   if (session) {
-    elements.syncStatus.textContent = `Senkronize: ${session.user.email}`;
+    const name = state.profile.displayName || session.user.email;
+    elements.syncStatus.textContent = `Senkronize: ${name}`;
     elements.syncSignOut.hidden = false;
     elements.syncSignIn.hidden = true;
     elements.syncSignUp.hidden = true;
+    elements.syncNow.hidden = false;
   } else {
     elements.syncStatus.textContent = supabaseClient
       ? "Giriş yaparak verilerini senkronize et"
@@ -628,7 +711,9 @@ function updateSyncUI(session) {
     elements.syncSignOut.hidden = true;
     elements.syncSignIn.hidden = false;
     elements.syncSignUp.hidden = false;
+    elements.syncNow.hidden = true;
   }
+  renderSyncMeta();
 }
 
 async function signIn() {
@@ -657,14 +742,21 @@ async function signUp() {
     showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
     return;
   }
-  const { error } = await supabaseClient.auth.signUp({
+  const { data, error } = await supabaseClient.auth.signUp({
     email: elements.syncEmail.value.trim(),
     password: elements.syncPassword.value,
+    options: {
+      data: {
+        display_name: state.profile.displayName,
+        avatar: state.profile.avatar,
+      },
+    },
   });
   if (error) {
     showToast("Kayıt başarısız", error.message);
     return;
   }
+  if (data.user) await upsertProfile(data.user);
   showToast("Kayıt başarılı", "E-postanı doğruladıktan sonra giriş yap.");
 }
 
@@ -673,6 +765,20 @@ async function signOut() {
   await supabaseClient.auth.signOut();
   updateSyncUI(null);
   showToast("Çıkış yapıldı", "Veriler yerelde saklanmaya devam ediyor.");
+}
+
+async function syncNow() {
+  if (!supabaseClient) {
+    showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
+    return;
+  }
+  await pullFromCloud();
+  await pushToCloud();
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+  updateSyncUI(session);
+  showToast("Senkron tamam", "Profil ve çalışma verileri güncellendi.");
 }
 
 // ─── Render ──────────────────────────────────────────────────────────────────
@@ -779,6 +885,25 @@ function renderSettings() {
   elements.soundVolumeLabel.textContent = `${state.settings.soundVolume}%`;
   elements.dailyGoal.value = state.settings.dailyGoal;
   elements.dailyGoalLabel.textContent = `${state.settings.dailyGoal} pomo`;
+  elements.profileName.value = state.profile.displayName;
+  elements.profileRole.value = state.profile.role;
+  elements.profileAvatar.value = state.profile.avatar;
+  renderProfile();
+  renderSyncMeta();
+}
+
+function renderProfile() {
+  const name = state.profile.displayName || "PomoFlow kullanıcısı";
+  elements.profileAvatarPreview.textContent = state.profile.avatar;
+  elements.profileNamePreview.textContent = name;
+  elements.profileMetaPreview.textContent =
+    state.profile.role || `Katılım: ${formatSyncTime(state.profile.createdAt)}`;
+}
+
+function renderSyncMeta() {
+  elements.syncMeta.textContent = `Son senkron: ${formatSyncTime(
+    state.sync.lastPushedAt || state.sync.lastPulledAt,
+  )}`;
 }
 
 function render() {
@@ -927,10 +1052,20 @@ elements.testSound.addEventListener("click", () => {
 elements.syncSignIn.addEventListener("click", signIn);
 elements.syncSignUp.addEventListener("click", signUp);
 elements.syncSignOut.addEventListener("click", signOut);
+elements.syncNow.addEventListener("click", syncNow);
+elements.saveProfile.addEventListener("click", () => {
+  state.profile.displayName = elements.profileName.value.trim();
+  state.profile.role = elements.profileRole.value.trim();
+  state.profile.avatar = elements.profileAvatar.value;
+  state.profile.updatedAt = new Date().toISOString();
+  saveState();
+  renderProfile();
+  showToast("Profil güncellendi", "Profil bilgilerin kaydedildi.");
+});
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 
-applyTheme(state.settings.theme);
+applyTheme(state.settings.theme, { markDirty: false, sync: false });
 render();
 
 supabaseClient = initSupabase();
