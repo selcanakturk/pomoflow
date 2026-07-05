@@ -1211,6 +1211,23 @@ function renderMobileView() {
   elements.quoteToggle.setAttribute("aria-expanded", String(quoteExpanded));
 }
 
+function syncBackgroundVideoSource() {
+  if (!elements.backgroundVideo) return;
+  const isMobile = window.matchMedia("(max-width: 640px)").matches;
+  const nextSrc = isMobile
+    ? elements.backgroundVideo.dataset.mobileSrc
+    : elements.backgroundVideo.dataset.desktopSrc;
+  const nextUrl = new URL(nextSrc, window.location.href).href;
+
+  if (elements.backgroundVideo.currentSrc === nextUrl || elements.backgroundVideo.src === nextUrl) {
+    return;
+  }
+
+  elements.backgroundVideo.src = nextSrc;
+  elements.backgroundVideo.load();
+  elements.backgroundVideo.play().catch(() => {});
+}
+
 function render() {
   const currentMode = modeDetails[state.mode];
 
@@ -1425,5 +1442,8 @@ if (supabaseClient) {
 
 if (elements.backgroundVideo) {
   elements.backgroundVideo.muted = true;
-  elements.backgroundVideo.play().catch(() => {});
+  syncBackgroundVideoSource();
+  window
+    .matchMedia("(max-width: 640px)")
+    .addEventListener("change", syncBackgroundVideoSource);
 }
