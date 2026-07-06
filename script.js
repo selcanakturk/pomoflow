@@ -166,6 +166,7 @@ let authMode = "login";
 let mobileView = "focus";
 let spotifyExpanded = false;
 let quoteExpanded = false;
+let authBusy = false;
 
 // ─── DOM ─────────────────────────────────────────────────────────────────────
 
@@ -618,6 +619,41 @@ function formatSyncTime(value) {
   }).format(new Date(value));
 }
 
+function getFriendlyError(error) {
+  const message = String(error?.message ?? error ?? "").toLowerCase();
+  if (message.includes("invalid login") || message.includes("invalid credentials")) {
+    return "E-posta ya da şifre hatalı.";
+  }
+  if (message.includes("email not confirmed")) {
+    return "Giriş yapmadan önce e-postanı doğrulaman gerekiyor.";
+  }
+  if (message.includes("permission denied") || message.includes("row-level security")) {
+    return "Senkronizasyon izni eksik. Supabase SQL kurulumunu tekrar çalıştır.";
+  }
+  if (message.includes("network") || message.includes("failed to fetch")) {
+    return "Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.";
+  }
+  if (message.includes("password")) {
+    return "Şifre geçersiz ya da çok kısa.";
+  }
+  return "İşlem tamamlanamadı. Biraz sonra tekrar dene.";
+}
+
+function setAuthBusy(isBusy) {
+  authBusy = isBusy;
+  [
+    elements.syncSignIn,
+    elements.syncSignUp,
+    elements.syncSignOut,
+    elements.syncNow,
+    elements.saveProfile,
+  ].forEach((button) => {
+    if (!button) return;
+    button.disabled = isBusy;
+    button.classList.toggle("is-loading", isBusy);
+  });
+}
+
 // ─── Theme ───────────────────────────────────────────────────────────────────
 
 function applyTheme(theme, options = {}) {
@@ -701,13 +737,13 @@ function scheduleSync() {
 }
 
 async function pushToCloud() {
-  if (!supabaseClient) return;
+  if (!supabaseClient) return false;
   const {
     data: { session },
   } = await supabaseClient.auth.getSession();
-  if (!session) return;
+  if (!session) return false;
   if (state.owner.type !== "user" || state.owner.userId !== session.user.id) {
-    return;
+    return false;
   }
 
   const payload = {
@@ -734,8 +770,8 @@ async function pushToCloud() {
   });
 
   if (error) {
-    showToast("Senkron hatası", error.message);
-    return;
+    showToast("Senkron tamamlanamadı", getFriendlyError(error));
+    return false;
   }
 
   await upsertProfile(session.user);
@@ -744,11 +780,12 @@ async function pushToCloud() {
   state.sync.remoteUpdatedAt = pushedAt;
   saveState({ markDirty: false, sync: false });
   renderSyncMeta();
+  return true;
 }
 
 async function upsertProfile(user) {
-  if (!supabaseClient || !user) return;
-  await supabaseClient.from("pomoflow_profiles").upsert(
+  if (!supabaseClient || !user) return false;
+  const { error } = await supabaseClient.from("pomoflow_profiles").upsert(
     {
       user_id: user.id,
       display_name: getProfileDisplayName() || user.email?.split("@")[0] || "PomoFlow kullanıcısı",
@@ -758,6 +795,11 @@ async function upsertProfile(user) {
     },
     { onConflict: "user_id" },
   );
+  if (error) {
+    showToast("Profil senkronize edilemedi", getFriendlyError(error));
+    return false;
+  }
+  return true;
 }
 
 function applyUserMetadataProfile(user) {
@@ -811,7 +853,7 @@ async function pullFromCloud(options = {}) {
     .maybeSingle();
 
   if (error) {
-    showToast("Senkron hatası", error.message);
+    showToast("Senkron tamamlanamadı", getFriendlyError(error));
     state.sync.activeEmail = session.user.email;
     saveState({ markDirty: false, sync: false });
     render();
@@ -918,17 +960,19 @@ function updateSyncUI(session) {
 }
 
 async function signIn() {
+  if (authBusy) return;
   if (!supabaseClient) {
-    showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
+    showToast("Senkron kapalı", "Bulut senkronizasyonu için config.js ayarlarını ekle.");
     return;
   }
+  setAuthBusy(true);
   try {
     const { data, error } = await supabaseClient.auth.signInWithPassword({
       email: elements.syncEmail.value.trim(),
       password: elements.syncPassword.value,
     });
     if (error) {
-      showToast("Giriş başarısız", error.message);
+      showToast("Giriş yapılamadı", getFriendlyError(error));
       return;
     }
     const session = data.session;
@@ -941,97 +985,134 @@ async function signIn() {
     closeAuth();
     showToast("Giriş başarılı", "Verilerin senkronize edildi.");
   } catch (error) {
-    showToast("Giriş başarısız", error.message ?? "Beklenmeyen bir hata oluştu.");
+    showToast("Giriş yapılamadı", getFriendlyError(error));
     return;
+  } finally {
+    setAuthBusy(false);
   }
 }
 
 async function signUp() {
+  if (authBusy) return;
   if (!supabaseClient) {
-    showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
+    showToast("Senkron kapalı", "Bulut senkronizasyonu için config.js ayarlarını ekle.");
     return;
   }
-  const pendingProfile = {
-    ...defaultState({ type: "user" }).profile,
-    ...getRegisterProfileFromInputs(),
-  };
-  const { data, error } = await supabaseClient.auth.signUp({
-    email: elements.registerEmail.value.trim(),
-    password: elements.registerPassword.value,
-    options: {
-      data: {
-        display_name: pendingProfile.displayName,
-        first_name: pendingProfile.firstName,
-        last_name: pendingProfile.lastName,
-        avatar: pendingProfile.avatar,
+  setAuthBusy(true);
+  try {
+    const pendingProfile = {
+      ...defaultState({ type: "user" }).profile,
+      ...getRegisterProfileFromInputs(),
+    };
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: elements.registerEmail.value.trim(),
+      password: elements.registerPassword.value,
+      options: {
+        data: {
+          display_name: pendingProfile.displayName,
+          first_name: pendingProfile.firstName,
+          last_name: pendingProfile.lastName,
+          avatar: pendingProfile.avatar,
+        },
       },
-    },
-  });
-  if (error) {
-    showToast("Kayıt başarısız", error.message);
-    return;
-  }
-  if (data.session?.user) {
-    const cleanUserState = defaultState({
-      type: "user",
-      userId: data.session.user.id,
-      email: data.session.user.email,
     });
-    cleanUserState.profile = { ...cleanUserState.profile, ...pendingProfile };
-    setActiveState(cleanUserState, getUserStorageKey(data.session.user.id), {
-      render: false,
-    });
-    await upsertProfile(data.session.user);
-    updateSyncUI(data.session);
-    render();
+    if (error) {
+      showToast("Kayıt oluşturulamadı", getFriendlyError(error));
+      return;
+    }
+    if (data.session?.user) {
+      const cleanUserState = defaultState({
+        type: "user",
+        userId: data.session.user.id,
+        email: data.session.user.email,
+      });
+      cleanUserState.profile = { ...cleanUserState.profile, ...pendingProfile };
+      setActiveState(cleanUserState, getUserStorageKey(data.session.user.id), {
+        render: false,
+      });
+      await upsertProfile(data.session.user);
+      updateSyncUI(data.session);
+      render();
+    }
+    showToast("Kayıt başarılı", "E-postanı doğruladıktan sonra giriş yap.");
+  } catch (error) {
+    showToast("Kayıt oluşturulamadı", getFriendlyError(error));
+  } finally {
+    setAuthBusy(false);
   }
-  showToast("Kayıt başarılı", "E-postanı doğruladıktan sonra giriş yap.");
 }
 
 async function saveProfile() {
+  if (authBusy) return;
   if (!supabaseClient) {
-    showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
+    showToast("Senkron kapalı", "Bulut senkronizasyonu için config.js ayarlarını ekle.");
     return;
   }
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
-  if (!session) {
-    showToast("Giriş gerekli", "Profilini kaydetmek için giriş yap.");
-    setAuthMode("login");
-    return;
+  setAuthBusy(true);
+  try {
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
+    if (!session) {
+      showToast("Giriş gerekli", "Profilini kaydetmek için giriş yap.");
+      setAuthMode("login");
+      return;
+    }
+    syncProfileFromInputs();
+    await upsertProfile(session.user);
+    await pushToCloud();
+    updateSyncUI(session);
+    render();
+    showToast("Profil kaydedildi", "Hesap bilgilerin güncellendi.");
+  } catch (error) {
+    showToast("Profil kaydedilemedi", getFriendlyError(error));
+  } finally {
+    setAuthBusy(false);
   }
-  syncProfileFromInputs();
-  await upsertProfile(session.user);
-  await pushToCloud();
-  updateSyncUI(session);
-  render();
-  showToast("Profil kaydedildi", "Hesap bilgilerin güncellendi.");
 }
 
 async function signOut() {
+  if (authBusy) return;
   if (!supabaseClient) return;
-  await pushToCloud();
-  await supabaseClient.auth.signOut();
-  resetToGuestState();
-  updateSyncUI(null);
-  closeAuth();
-  showToast("Çıkış yapıldı", "Guest moda geçildi.");
+  setAuthBusy(true);
+  try {
+    await pushToCloud();
+    await supabaseClient.auth.signOut();
+    resetToGuestState();
+    updateSyncUI(null);
+    closeAuth();
+    showToast("Çıkış yapıldı", "Guest moda geçildi.");
+  } catch (error) {
+    showToast("Çıkış tamamlanamadı", getFriendlyError(error));
+  } finally {
+    setAuthBusy(false);
+  }
 }
 
 async function syncNow() {
+  if (authBusy) return;
   if (!supabaseClient) {
-    showToast("Senkron devre dışı", "config.js dosyasını yapılandır.");
+    showToast("Senkron kapalı", "Bulut senkronizasyonu için config.js ayarlarını ekle.");
     return;
   }
-  syncProfileFromInputs();
-  await pushToCloud();
-  await pullFromCloud();
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
-  updateSyncUI(session);
-  showToast("Senkron tamam", "Profil ve çalışma verileri güncellendi.");
+  setAuthBusy(true);
+  try {
+    syncProfileFromInputs();
+    const pushed = await pushToCloud();
+    await pullFromCloud();
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
+    updateSyncUI(session);
+    showToast(
+      pushed ? "Senkron tamam" : "Yerel kayıt korundu",
+      pushed ? "Profil ve çalışma verileri güncellendi." : "Bulut güncellenemedi, yerel verilerin korunuyor.",
+    );
+  } catch (error) {
+    showToast("Senkron tamamlanamadı", getFriendlyError(error));
+  } finally {
+    setAuthBusy(false);
+  }
 }
 
 // ─── Render ──────────────────────────────────────────────────────────────────
@@ -1050,6 +1131,13 @@ function renderTimer() {
 
 function renderTasks() {
   elements.taskList.innerHTML = "";
+
+  if (state.tasks.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "task-empty";
+    empty.textContent = "Bugün için görev yok. Küçük bir adım ekleyerek başlayabilirsin.";
+    elements.taskList.append(empty);
+  }
 
   state.tasks.forEach((task) => {
     const item = document.createElement("li");

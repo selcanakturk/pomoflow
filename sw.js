@@ -1,4 +1,4 @@
-const CACHE_NAME = "pomoflow-v5";
+const CACHE_NAME = "pomoflow-v6";
 const APP_SHELL = [
   "./",
   "./index.html",

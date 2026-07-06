@@ -81,6 +81,16 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
+.is-loading {
+  position: relative;
+}
+
 /* ─── Background ─────────────────────────────────────────────────────────── */
 
 .background-video,
@@ -712,6 +722,17 @@ h2 {
 .task-item.done span {
   color: var(--muted);
   text-decoration: line-through;
+}
+
+.task-empty {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  background: var(--surface);
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .delete-task {
