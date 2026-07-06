@@ -4,7 +4,9 @@
   "description": "Vanilla JavaScript ile Pomodoro ve gorev takip sitesi.",
   "private": true,
   "scripts": {
-    "check": "node --check script.js"
+    "check": "node --check script.js",
+    "pwa:check": "node scripts/pwa-check.mjs",
+    "start": "python3 -m http.server 4173"
   },
   "keywords": [
     "javascript",

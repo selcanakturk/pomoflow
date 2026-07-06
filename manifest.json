@@ -2,13 +2,32 @@
   "name": "PomoFlow",
   "short_name": "PomoFlow",
   "description": "Odaklan, molayı yönet, ilerlemeni takip et.",
-  "start_url": "./index.html",
+  "id": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#101417",
   "theme_color": "#101417",
   "lang": "tr",
+  "dir": "ltr",
   "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Pomodoro Başlat",
+      "short_name": "Odak",
+      "description": "PomoFlow zamanlayıcısını aç.",
+      "url": "./?view=focus",
+      "icons": [
+        {
+          "src": "./icons/icon-192.svg",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "./icons/icon-192.svg",

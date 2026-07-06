@@ -53,10 +53,18 @@ function getUserStorageKey(userId) {
   return `${STORAGE_KEY}-user-${userId}`;
 }
 
+function createId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  return `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function defaultState(owner = {}) {
   return {
     version: STATE_VERSION,
-    clientId: crypto.randomUUID(),
+    clientId: createId(),
     owner: {
       type: owner.type ?? "guest",
       userId: owner.userId ?? null,
@@ -69,7 +77,7 @@ function defaultState(owner = {}) {
     spotifyUrl: DEFAULT_SPOTIFY_URL,
     tasks: [
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         text: "İlk görevini ekle ve pomodoro oturumunu başlat",
         done: false,
       },
@@ -451,7 +459,7 @@ function skipSession() {
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 
 function addTask(text) {
-  state.tasks.unshift({ id: crypto.randomUUID(), text, done: false });
+  state.tasks.unshift({ id: createId(), text, done: false });
   saveState();
   renderTasks();
 }
